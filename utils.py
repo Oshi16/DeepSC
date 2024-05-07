@@ -369,7 +369,6 @@ def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel
         # create the decode mask
         trg_mask = (outputs == padding_idx).unsqueeze(-2).type(torch.FloatTensor) #[batch, 1, seq_len]
         look_ahead_mask = subsequent_mask(outputs.size(1)).type(torch.FloatTensor)
-#        print(look_ahead_mask)
         combined_mask = torch.max(trg_mask, look_ahead_mask)
         combined_mask = combined_mask.to(device)
 
@@ -384,11 +383,78 @@ def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel
         # return the max-prob index
         _, next_word = torch.max(prob, dim = -1)
         #next_word = next_word.unsqueeze(1)
-        
         #next_word = next_word.data[0]
         outputs = torch.cat([outputs, next_word], dim=1)
 
     return outputs
 
+import torch.nn.functional as F
+def beam_search_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel, beam_width=10):
+    # create src_mask
+    channels = Channels()
+    src_mask = (src == padding_idx).unsqueeze(-2).type(torch.FloatTensor).to(device) #[batch, 1, seq_len]
 
+    enc_output = model.encoder(src, src_mask)
+    channel_enc_output = model.channel_encoder(enc_output)
+    Tx_sig = PowerNormalize(channel_enc_output)
 
+    if channel == 'AWGN':
+        Rx_sig = channels.AWGN(Tx_sig, n_var)
+    elif channel == 'Rayleigh':
+        Rx_sig = channels.Rayleigh(Tx_sig, n_var)
+    elif channel == 'Rician':
+        Rx_sig = channels.Rician(Tx_sig, n_var)
+    else:
+        raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
+            
+    #channel_enc_output = model.blind_csi(channel_enc_output)
+          
+    memory = model.channel_decoder(Rx_sig)
+    
+    # outputs = torch.ones(src.size(0), 1).fill_(start_symbol).type_as(src.data)
+    # beam = [(torch.ones(src.size(0), 1).fill_(start_symbol).type_as(src.data), 0)]  # (sequences, score)
+    beam_outputs = torch.ones(src.size(0), 1, 1).fill_(start_symbol).type_as(src.data)
+    beam_scores = torch.zeros(src.size(0), 1, 1).to(device)
+
+    for _ in range(max_len - 1):
+        candidates = []
+        for i in range(beam_outputs.shape[1]):
+            seq, score = beam_outputs[:, i, ...], beam_scores[:, i, ...]
+            trg_mask = (seq == padding_idx).unsqueeze(-2).type(torch.FloatTensor) #[batch, 1, seq_len]
+            look_ahead_mask = subsequent_mask(seq.size(1)).type(torch.FloatTensor)
+            
+            combined_mask = torch.max(trg_mask, look_ahead_mask)
+            combined_mask = combined_mask.to(device)
+
+            # Decode the received signal
+            dec_output = model.decoder(seq, memory, combined_mask, None)
+            pred = model.dense(dec_output)
+        
+            # Predict the next word probabilities
+            prob = pred[:, -1:, :]  # (batch_size, 1, vocab_size)
+            log_prob = F.log_softmax(prob, dim=-1)  # Log softmax to get log probabilities
+
+            # Get top k candidates based on beam width
+            topk_probs, topk_words = log_prob.topk(beam_width, dim=-1)
+            topk_probs = topk_probs.squeeze(1)  # (batch_size, beam_width)
+            topk_words = topk_words.squeeze(1)  # (batch_size, beam_width)
+
+            for k in range(beam_width):
+                candidate_seq = torch.cat([seq, topk_words[:, k:k+1]], dim=1)
+                candidate_score = score + topk_probs[:, k:k+1]
+                candidates.append((candidate_seq, candidate_score))
+
+        # Select top beam_width candidates based on score
+        candidate_outputs, candidate_scores = zip(*candidates)
+        candidate_outputs = torch.cat([output[:, None, ...] for output in candidate_outputs], dim=1)
+        candidate_scores = torch.cat([score[:, None, ...] for score in candidate_scores], dim=1)
+        
+        beam_scores, indices = torch.sort(candidate_scores, dim=1, descending=True)
+        indices = indices[:, :beam_width, 0]
+        beam_outputs = torch.zeros(src.size(0), beam_width, candidate_outputs.size(-1)).type_as(src.data)
+        for i in range(indices.shape[0]):
+            for j in range(indices.shape[1]):
+                beam_outputs[i, j] = candidate_outputs[i, indices[i, j]]
+                
+    return beam_outputs[:, 0, ...]
+    

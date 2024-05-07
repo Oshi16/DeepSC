@@ -22,7 +22,9 @@ from tqdm import tqdm
 parser = argparse.ArgumentParser()
 #parser.add_argument('--data-dir', default='data/train_data.pkl', type=str)
 parser.add_argument('--vocab-file', default='europarl/vocab.json', type=str)
-parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
+# parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
+parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
+# parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-smaller_lr', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str, help = 'Please choose AWGN, Rayleigh, and Rician')
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
@@ -72,7 +74,9 @@ def train(epoch, args, net, mi_net=None):
                                 pin_memory=True, collate_fn=collate_data)
     pbar = tqdm(train_iterator)
 
-    noise_std = np.random.uniform(SNR_to_noise(5), SNR_to_noise(10), size=(1))
+    noise_std = np.random.uniform(SNR_to_noise(0), SNR_to_noise(18), size=(1))
+    # noise_std = np.random.uniform(SNR_to_noise(5), SNR_to_noise(10), size=(1))
+    # noise_std = [SNR_to_noise(12)]
 
     for sents in pbar:
         sents = sents.to(device)
@@ -99,7 +103,7 @@ def train(epoch, args, net, mi_net=None):
 if __name__ == '__main__':
     # setup_seed(10)
     args = parser.parse_args()
-    args.vocab_file = '/import/antennas/Datasets/hx301/' + args.vocab_file
+    args.vocab_file = './' + args.vocab_file
     """ preparing the dataset """
     vocab = json.load(open(args.vocab_file, 'rb'))
     token_to_idx = vocab['token_to_idx']
@@ -116,7 +120,11 @@ if __name__ == '__main__':
     mi_net = Mine().to(device)
     criterion = nn.CrossEntropyLoss(reduction = 'none')
     optimizer = torch.optim.Adam(deepsc.parameters(),
-                                 lr=1e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
+                                 # lr=1e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
+                                 # lr=2e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
+                                 lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
+                                 # lr=2e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
+                                 # lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay = 2.5e-4)
     mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3)
     #opt = NoamOpt(args.d_model, 1, 4000, optimizer)
     initNetParams(deepsc)
