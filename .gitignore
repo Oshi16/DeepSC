@@ -6,6 +6,7 @@
 dist
 build
 /__pycache__/*
+/models/__pycache__/*
 
 # virtual enviornment
 /.env/*

@@ -24,9 +24,9 @@ from w3lib.html import remove_tags
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-dir', default='europarl/train_data.pkl', type=str)
 parser.add_argument('--vocab-file', default='europarl/vocab.json', type=str)
+parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-SNR12-lr1e-4', type=str)
 # parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
-parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
-# parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-smaller_lr', type=str)
+# parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-4', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str)
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
@@ -121,7 +121,6 @@ def performance(args, SNR, net):
 
                 for i, sents in enumerate(test_iterator):
                 
-                    # if i > 2: break
                     sents = sents.to(device)
                     # src = batch.src.transpose(0, 1)[:1]
                     target = sents
@@ -130,7 +129,7 @@ def performance(args, SNR, net):
                                         # start_idx, args.channel)
 
                     out = beam_search_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
-                                        start_idx, args.channel, beam_width=4)
+                                        start_idx, args.channel, beam_width=5)
 
                     sentences = out.cpu().numpy().tolist()
                     result_string = list(map(StoT.sequence_to_text, sentences))

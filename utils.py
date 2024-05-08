@@ -17,6 +17,8 @@ from models.mutual_info import sample_batch, mutual_information
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+torch.manual_seed(1234)
+
 class BleuScore():
     def __init__(self, w1, w2, w3, w4):
         self.w1 = w1 # 1-gram weights
