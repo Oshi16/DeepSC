@@ -1,17 +1,6 @@
-# !usr/bin/env python
-# -*- coding:utf-8 _*-
-"""
-@Author: Huiqiang Xie
-@File: text_preprocess.py
-@Time: 2021/3/31 22:14
-"""
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Jan 30 16:44:08 2020
 
-@author: hx301
-"""
 import unicodedata
 import re
 from w3lib.html import remove_tags
@@ -22,10 +11,11 @@ import json
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input-data-dir', default='europarl/en', type=str)
-parser.add_argument('--output-train-dir', default='europarl/train_data.pkl', type=str)
-parser.add_argument('--output-test-dir', default='europarl/test_data.pkl', type=str)
-parser.add_argument('--output-vocab', default='europarl/vocab.json', type=str)
+# Change the default directories to point to Google Drive
+parser.add_argument('--input-data-dir', default='/content/drive/MyDrive/DeepSC_data/data/small', type=str)
+parser.add_argument('--output-train-dir', default='/content/drive/MyDrive/DeepSC_data/europarl/train_data.pkl', type=str)
+parser.add_argument('--output-test-dir', default='/content/drive/MyDrive/DeepSC_data/europarl/test_data.pkl', type=str)
+parser.add_argument('--output-vocab', default='/content/drive/MyDrive/DeepSC_data/europarl/vocab.json', type=str)
 
 SPECIAL_TOKENS = {
   '<PAD>': 0,
