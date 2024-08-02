@@ -13,11 +13,17 @@ import torch
 from torch.utils.data import Dataset
 
 class EurDataset(Dataset):
+    def __init__(self, split='train', data_dir='./'):
+        with open(os.path.join(data_dir, 'europarl/{}_data.pkl'.format(split)), 'rb') as f:
+            self.data = pickle.load(f)
+
+'''
+class EurDataset(Dataset):
     def __init__(self, split='train'):
         data_dir = './'
         with open(data_dir + 'europarl/{}_data.pkl'.format(split), 'rb') as f:
             self.data = pickle.load(f)
-
+'''
 
     def __getitem__(self, index):
         sents = self.data[index]
