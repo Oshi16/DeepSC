@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 # Change the default directories to point to Google Drive
-parser.add_argument('--input-data-dir', default='/content/drive/MyDrive/DeepSC_data/data/txt/en', type=str)
+parser.add_argument('--input-data-dir', default='/content/drive/MyDrive/DeepSC_data/txt/en', type=str)
 parser.add_argument('--output-train-dir', default='/content/drive/MyDrive/DeepSC_data/train_data.pkl', type=str)
 parser.add_argument('--output-test-dir', default='/content/drive/MyDrive/DeepSC_data/test_data.pkl', type=str)
 parser.add_argument('--output-vocab', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
