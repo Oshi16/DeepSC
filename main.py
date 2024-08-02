@@ -20,12 +20,10 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-#parser.add_argument('--data-dir', default='data/train_data.pkl', type=str)
-parser.add_argument('--vocab-file', default='europarl/vocab.json', type=str)
-# parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
-parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
-# parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-smaller_lr', type=str)
-parser.add_argument('--channel', default='Rayleigh', type=str, help = 'Please choose AWGN, Rayleigh, and Rician')
+parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str)
+parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
+parser.add_argument('--channel', default='Rayleigh', type=str, help='Please choose AWGN, Rayleigh, and Rician')
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
 parser.add_argument('--d-model', default=128, type=int)
@@ -34,7 +32,6 @@ parser.add_argument('--num-layers', default=4, type=int)
 parser.add_argument('--num-heads', default=8, type=int)
 parser.add_argument('--batch-size', default=128, type=int)
 parser.add_argument('--epochs', default=80, type=int)
-
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -46,9 +43,9 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
 
 def validate(epoch, args, net):
-    test_eur = EurDataset('test')
+    test_eur = EurDataset('test', args.data_dir)
     test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0,
-                                pin_memory=True, collate_fn=collate_data)
+                               pin_memory=True, collate_fn=collate_data)
     net.eval()
     pbar = tqdm(test_iterator)
     total = 0
@@ -56,7 +53,7 @@ def validate(epoch, args, net):
         for sents in pbar:
             sents = sents.to(device)
             loss = val_step(net, sents, sents, 0.1, pad_idx,
-                             criterion, args.channel)
+                            criterion, args.channel)
 
             total += loss
             pbar.set_description(
@@ -65,18 +62,15 @@ def validate(epoch, args, net):
                 )
             )
 
-    return total/len(test_iterator)
-
+    return total / len(test_iterator)
 
 def train(epoch, args, net, mi_net=None):
-    train_eur= EurDataset('train')
+    train_eur = EurDataset('train', args.data_dir)
     train_iterator = DataLoader(train_eur, batch_size=args.batch_size, num_workers=0,
                                 pin_memory=True, collate_fn=collate_data)
     pbar = tqdm(train_iterator)
 
     noise_std = np.random.uniform(SNR_to_noise(0), SNR_to_noise(18), size=(1))
-    # noise_std = np.random.uniform(SNR_to_noise(5), SNR_to_noise(10), size=(1))
-    # noise_std = [SNR_to_noise(12)]
 
     for sents in pbar:
         sents = sents.to(device)
@@ -86,7 +80,7 @@ def train(epoch, args, net, mi_net=None):
             loss = train_step(net, sents, sents, 0.1, pad_idx,
                               optimizer, criterion, args.channel, mi_net)
             pbar.set_description(
-                'Epoch: {};  Type: Train; Loss: {:.5f}; MI {:.5f}'.format(
+                'Epoch: {}; Type: Train; Loss: {:.5f}; MI {:.5f}'.format(
                     epoch + 1, loss, mi
                 )
             )
@@ -94,16 +88,13 @@ def train(epoch, args, net, mi_net=None):
             loss = train_step(net, sents, sents, noise_std[0], pad_idx,
                               optimizer, criterion, args.channel)
             pbar.set_description(
-                'Epoch: {};  Type: Train; Loss: {:.5f}'.format(
+                'Epoch: {}; Type: Train; Loss: {:.5f}'.format(
                     epoch + 1, loss
                 )
             )
 
-
 if __name__ == '__main__':
-    # setup_seed(10)
     args = parser.parse_args()
-    args.vocab_file = './' + args.vocab_file
     """ preparing the dataset """
     vocab = json.load(open(args.vocab_file, 'rb'))
     token_to_idx = vocab['token_to_idx']
@@ -112,22 +103,17 @@ if __name__ == '__main__':
     start_idx = token_to_idx["<START>"]
     end_idx = token_to_idx["<END>"]
 
-
     """ define optimizer and loss function """
     deepsc = DeepSC(args.num_layers, num_vocab, num_vocab,
-                        num_vocab, num_vocab, args.d_model, args.num_heads,
-                        args.dff, 0.1).to(device)
+                    num_vocab, num_vocab, args.d_model, args.num_heads,
+                    args.dff, 0.1).to(device)
     mi_net = Mine().to(device)
-    criterion = nn.CrossEntropyLoss(reduction = 'none')
+    criterion = nn.CrossEntropyLoss(reduction='none')
     optimizer = torch.optim.Adam(deepsc.parameters(),
-                                 # lr=1e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
-                                 # lr=2e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
-                                 lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
-                                 # lr=2e-4, betas=(0.9, 0.98), eps=1e-8, weight_decay = 5e-4)
-                                 # lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay = 2.5e-4)
+                                 lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay=5e-4)
     mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3)
-    #opt = NoamOpt(args.d_model, 1, 4000, optimizer)
     initNetParams(deepsc)
+
     for epoch in range(args.epochs):
         start = time.time()
         record_acc = 10
@@ -142,10 +128,3 @@ if __name__ == '__main__':
                 torch.save(deepsc.state_dict(), f)
             record_acc = avg_acc
     record_loss = []
-
-
-    
-
-        
-
-
