@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 
 class EurDataset(Dataset):
     def __init__(self, split='train', data_dir='./'):
-        with open(os.path.join(data_dir, 'DepSC_data/{}_data.pkl'.format(split)), 'rb') as f:
+        with open(os.path.join(data_dir, '/{}_data.pkl'.format(split)), 'rb') as f:
             self.data = pickle.load(f)
 
     def __getitem__(self, index):
