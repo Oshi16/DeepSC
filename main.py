@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue May 26 16:59:14 2020
 
-@author: HQ Xie
-"""
 import os
 import argparse
 import time
