@@ -8,7 +8,7 @@ import torch
 from torch.utils.data import Dataset
 
 class EurDataset(Dataset):
-    def __init__(self, split='train', data_dir='./'):
+    def __init__(self, split='train', data_dir='/content/drive/MyDrive/DeepSC_data'):
         """
         Initialize the dataset.
 
