@@ -26,7 +26,7 @@ parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', 
 parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
 #parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR12-lr1e-4', type=str)
 #parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh', type=str)
-parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-4', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str)
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
