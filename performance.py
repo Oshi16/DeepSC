@@ -22,8 +22,8 @@ from sklearn.preprocessing import normalize
 from w3lib.html import remove_tags
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default='europarl/train_data.pkl', type=str)
-parser.add_argument('--vocab-file', default='europarl/vocab.json', type=str)
+parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str)
+parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
 parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-SNR12-lr1e-4', type=str)
 # parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
 # parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-4', type=str)
