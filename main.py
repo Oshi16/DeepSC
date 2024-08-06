@@ -43,7 +43,7 @@ parser.add_argument('--epochs', default=80, type=int,
                     help='Number of training epochs')
 
 # Set device to GPU if available, otherwise use CPU
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def setup_seed(seed):
     """
@@ -147,7 +147,6 @@ if __name__ == '__main__':
     start_idx = token_to_idx["<START>"]
     end_idx = token_to_idx["<END>"]
 
-    """ Define optimizer and loss function """
     # Initialize the DeepSC model
     deepsc = DeepSC(args.num_layers, num_vocab, num_vocab,
                     num_vocab, num_vocab, args.d_model, args.num_heads,
@@ -158,9 +157,9 @@ if __name__ == '__main__':
     
     # Define loss function and optimizers
     criterion = nn.CrossEntropyLoss(reduction='none')
-    optimizer = torch.optim.Adam(deepsc.parameters(),
+    optimizer = torch.optim.Adam(deepsc.parameters(), # Initializes the optimizer for training the DeepSC model.
                                  lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay=5e-4)
-    mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3)
+    mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3) # Initializes the optimizer for the mutual information network.
     
     # Initialize network parameters
     initNetParams(deepsc)
