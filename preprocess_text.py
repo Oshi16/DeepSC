@@ -24,10 +24,10 @@ parser.add_argument('--output-vocab', default='/content/drive/MyDrive/DeepSC_dat
 
 # Special tokens with their respective indices
 SPECIAL_TOKENS = {
-  '<PAD>': 0,
-  '<START>': 1,
-  '<END>': 2,
-  '<UNK>': 3,
+  '<PAD>': 0, #Padding token to fill sequences to a fixed length.
+  '<START>': 1, #Indicates the start of a sequence.
+  '<END>': 2, #Indicates the end of a sequence.
+  '<UNK>': 3, #Represents unknown or out-of-vocabulary words.
 }
 
 def unicode_to_ascii(s):
