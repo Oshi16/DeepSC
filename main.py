@@ -97,8 +97,7 @@ def train(epoch, args, net, optimizer, criterion, mi_net=None):
     """
     # Load the training dataset
     train_eur = EurDataset('train', args.data_dir)
-    train_iterator = DataLoader(train_eur, batch_size=args.batch_size, num_workers=0,
-                                pin_memory=True, collate_fn=collate_data)
+    train_iterator = DataLoader(train_eur, batch_size=args.batch_size, num_workers=0, pin_memory=True, collate_fn=collate_data)
     pbar = tqdm(train_iterator)
 
     # Generate random noise standard deviation for channel
@@ -152,8 +151,7 @@ if __name__ == '__main__':
     
     # Define loss function and optimizers
     criterion = nn.CrossEntropyLoss(reduction='none')
-    optimizer = torch.optim.Adam(deepsc.parameters(), # Initializes the optimizer for training the DeepSC model.
-                                 lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(deepsc.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay=5e-4) # Initializes the optimizer for training the DeepSC model.
     mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3) # Initializes the optimizer for the mutual information network.
     
     # Initialize network parameters
