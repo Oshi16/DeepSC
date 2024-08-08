@@ -14,6 +14,7 @@ from models.transceiver import DeepSC
 from models.mutual_info import Mine
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+%matplotlib inline
 import matplotlib.pyplot as plt  # Import matplotlib for plotting
 
 # Argument parser to handle command-line arguments
@@ -197,9 +198,6 @@ plt.savefig('training_vs_validation_loss.png')
 from IPython.display import Image
 Image(filename='training_vs_validation_loss.png')
 '''
-%matplotlib inline
-import matplotlib.pyplot as plt
-
 # Sample plot
 plt.figure(figsize=(6, 4))
 plt.plot([1, 2, 3, 4], [10, 20, 25, 30], label='Line 1')
@@ -210,4 +208,3 @@ plt.title('Simple Plot')
 plt.legend()
 plt.grid(True)
 plt.show()
-
