@@ -62,8 +62,7 @@ def validate(epoch, args, net, criterion):
     """
     # Load the test dataset
     test_eur = EurDataset('test', args.data_dir)
-    test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0,
-                               pin_memory=True, collate_fn=collate_data)
+    test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0, pin_memory=True, collate_fn=collate_data)
     
     # Set model to evaluation mode
     net.eval()
