@@ -188,4 +188,10 @@ plt.ylabel('Loss')
 plt.title('Training Loss vs Validation Loss')
 plt.legend()
 plt.grid(True)
-plt.show()
+
+# Save the plot to a file
+plt.savefig('training_vs_validation_loss.png')
+
+# Display the saved plot
+from IPython.display import Image
+Image(filename='training_vs_validation_loss.png')
