@@ -18,30 +18,19 @@ import matplotlib.pyplot as plt  # Import matplotlib for plotting
 
 # Argument parser to handle command-line arguments
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str, 
-                    help='Directory where the dataset is stored')
-parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str, 
-                    help='Path to the vocabulary file')
-parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str, 
-                    help='Directory to save model checkpoints')
-parser.add_argument('--channel', default='Rayleigh', type=str, 
-                    help='Communication channel type (AWGN, Rayleigh, or Rician)')
-parser.add_argument('--MAX-LENGTH', default=30, type=int, 
-                    help='Maximum length of sentences')
-parser.add_argument('--MIN-LENGTH', default=4, type=int, 
-                    help='Minimum length of sentences')
-parser.add_argument('--d-model', default=128, type=int, 
-                    help='Dimension of the model')
-parser.add_argument('--dff', default=512, type=int, 
-                    help='Dimension of the feed-forward layer')
-parser.add_argument('--num-layers', default=4, type=int, 
-                    help='Number of layers in the model')
-parser.add_argument('--num-heads', default=8, type=int, 
-                    help='Number of attention heads')
-parser.add_argument('--batch-size', default=128, type=int, 
-                    help='Batch size for training')
-parser.add_argument('--epochs', default=80, type=int, 
-                    help='Number of training epochs')
+parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str)
+parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
+#parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh', type=str)
+parser.add_argument('--channel', default='Rayleigh', type=str, help='Communication channel type (AWGN, Rayleigh, or Rician)')
+parser.add_argument('--MAX-LENGTH', default=30, type=int)
+parser.add_argument('--MIN-LENGTH', default=4, type=int)
+parser.add_argument('--d-model', default=128, type=int)
+parser.add_argument('--dff', default=512, type=int, help='Dimension of the feed-forward layer')
+parser.add_argument('--num-layers', default=4, type=int)
+parser.add_argument('--num-heads', default=8, type=int)
+parser.add_argument('--batch-size', default=128, type=int)
+parser.add_argument('--epochs', default=80, type=int)
 
 # Set device to GPU if available, otherwise use CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
