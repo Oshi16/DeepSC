@@ -179,13 +179,13 @@ if __name__ == '__main__':
                 torch.save(deepsc.state_dict(), f)
             record_acc = avg_val_loss
 
-    # Plot training loss vs validation loss
-    plt.figure(figsize=(10, 5))
-    plt.plot(training_losses, epoch, label='Training Loss')
-    plt.plot(validation_losses, epoch, label='Validation Loss')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Training Loss vs Validation Loss')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+# Plot training loss vs validation loss
+plt.figure(figsize=(10, 5))
+plt.plot(range(args.epochs), training_losses, label='Training Loss')
+plt.plot(range(args.epochs), validation_losses, label='Validation Loss')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.title('Training Loss vs Validation Loss')
+plt.legend()
+plt.grid(True)
+plt.show()
