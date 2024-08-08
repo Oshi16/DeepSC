@@ -36,14 +36,13 @@ parser.add_argument('--bert-config-path', default='bert/cased_L-12_H-768_A-12/be
 parser.add_argument('--bert-checkpoint-path', default='bert/cased_L-12_H-768_A-12/bert_model.ckpt', type = str)
 parser.add_argument('--bert-dict-path', default='bert/cased_L-12_H-768_A-12/vocab.txt', type = str)
 
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # using pre-trained model to compute the sentence similarity
 class Similarity():
      def __init__(self, config_path, checkpoint_path, dict_path):
          self.model1 = build_bert_model(config_path, checkpoint_path, with_pool=True)
-         self.model = keras.Model(inputs=self.model1.input,
-                                  outputs=self.model1.get_layer('Encoder-11-FeedForward-Norm').output)
+         self.model = keras.Model(inputs=self.model1.input, outputs=self.model1.get_layer('Encoder-11-FeedForward-Norm').output)
           build tokenizer
          self.tokenizer = Tokenizer(dict_path, do_lower_case=True)
 
