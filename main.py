@@ -181,8 +181,8 @@ if __name__ == '__main__':
 
     # Plot training loss vs validation loss
     plt.figure(figsize=(10, 5))
-    plt.plot(training_losses, label='Training Loss')
-    plt.plot(validation_losses, label='Validation Loss')
+    plt.plot(training_losses, epoch, label='Training Loss')
+    plt.plot(validation_losses, epoch, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Training Loss vs Validation Loss')
