@@ -14,6 +14,7 @@ from models.transceiver import DeepSC
 from models.mutual_info import Mine
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import matplotlib.pyplot as plt  # Import matplotlib for plotting
 
 # Argument parser to handle command-line arguments
 parser = argparse.ArgumentParser()
@@ -43,7 +44,7 @@ parser.add_argument('--epochs', default=80, type=int,
                     help='Number of training epochs')
 
 # Set device to GPU if available, otherwise use CPU
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def setup_seed(seed):
     """
@@ -58,7 +59,7 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
 
-def validate(epoch, args, net):
+def validate(epoch, args, net, criterion):
     """
     Validate the model on the test dataset.
 
@@ -95,7 +96,7 @@ def validate(epoch, args, net):
     # Return average loss
     return total / len(test_iterator)
 
-def train(epoch, args, net, mi_net=None):
+def train(epoch, args, net, optimizer, criterion, mi_net=None):
     """
     Train the model on the training dataset.
 
@@ -113,6 +114,7 @@ def train(epoch, args, net, mi_net=None):
 
     # Generate random noise standard deviation for channel
     noise_std = np.random.uniform(SNR_to_noise(0), SNR_to_noise(18), size=(1))
+    total_loss = 0
 
     for sents in pbar:
         sents = sents.to(device)
@@ -129,11 +131,15 @@ def train(epoch, args, net, mi_net=None):
         else:
             # Compute training loss
             loss = train_step(net, sents, sents, noise_std[0], pad_idx, optimizer, criterion, args.channel)
+            total_loss += loss
             pbar.set_description(
                 'Epoch: {}; Type: Train; Loss: {:.5f}'.format(
                     epoch + 1, loss
                 )
             )
+    
+    # Return average training loss
+    return total_loss / len(train_iterator)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -164,22 +170,38 @@ if __name__ == '__main__':
     # Initialize network parameters
     initNetParams(deepsc)
 
+    # Initialize lists to store training and validation losses
+    training_losses = []
+    validation_losses = []
+
     # Training loop
     for epoch in range(args.epochs):
         start = time.time()
         record_acc = 10
         
         # Train the model
-        train(epoch, args, deepsc)
+        avg_train_loss = train(epoch, args, deepsc, optimizer, criterion)
+        training_losses.append(avg_train_loss)
         
         # Validate the model
-        avg_acc = validate(epoch, args, deepsc)
+        avg_val_loss = validate(epoch, args, deepsc, criterion)
+        validation_losses.append(avg_val_loss)
 
         # Save the model checkpoint if it improves
-        if avg_acc < record_acc:
+        if avg_val_loss < record_acc:
             if not os.path.exists(args.checkpoint_path):
                 os.makedirs(args.checkpoint_path)
             with open(args.checkpoint_path + '/checkpoint_{}.pth'.format(str(epoch + 1).zfill(2)), 'wb') as f:
                 torch.save(deepsc.state_dict(), f)
-            record_acc = avg_acc
-    record_loss = []
+            record_acc = avg_val_loss
+
+    # Plot training loss vs validation loss
+    plt.figure(figsize=(10, 5))
+    plt.plot(training_losses, label='Training Loss')
+    plt.plot(validation_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training Loss vs Validation Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
