@@ -36,8 +36,7 @@ parser.add_argument('--bert-config-path', default='bert/cased_L-12_H-768_A-12/be
 parser.add_argument('--bert-checkpoint-path', default='bert/cased_L-12_H-768_A-12/bert_model.ckpt', type = str)
 parser.add_argument('--bert-dict-path', default='bert/cased_L-12_H-768_A-12/vocab.txt', type = str)
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # using pre-trained model to compute the sentence similarity
 class Similarity():
