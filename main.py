@@ -15,7 +15,6 @@ from models.mutual_info import Mine
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import matplotlib.pyplot as plt  # Import matplotlib for plotting
-%matplotlib inline
 
 # Argument parser to handle command-line arguments
 parser = argparse.ArgumentParser()
