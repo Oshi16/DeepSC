@@ -33,7 +33,7 @@ parser.add_argument('--batch-size', default=128, type=int)
 parser.add_argument('--epochs', default=80, type=int)
 
 # Set device to GPU if available, otherwise use CPU
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def setup_seed(seed):
     """
