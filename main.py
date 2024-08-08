@@ -142,9 +142,7 @@ if __name__ == '__main__':
     end_idx = token_to_idx["<END>"]
 
     # Initialize the DeepSC model
-    deepsc = DeepSC(args.num_layers, num_vocab, num_vocab,
-                    num_vocab, num_vocab, args.d_model, args.num_heads,
-                    args.dff, 0.1).to(device)
+    deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d_model, args.num_heads, args.dff, 0.1).to(device)
     
     # Initialize the mutual information network (if applicable)
     mi_net = Mine().to(device)
