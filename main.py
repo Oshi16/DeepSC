@@ -179,6 +179,7 @@ if __name__ == '__main__':
                 torch.save(deepsc.state_dict(), f)
             record_acc = avg_val_loss
 
+'''
 # Plot training loss vs validation loss
 plt.figure(figsize=(10, 5))
 plt.plot(range(args.epochs), training_losses, label='Training Loss')
@@ -195,3 +196,18 @@ plt.savefig('training_vs_validation_loss.png')
 # Display the saved plot
 from IPython.display import Image
 Image(filename='training_vs_validation_loss.png')
+'''
+%matplotlib inline
+import matplotlib.pyplot as plt
+
+# Sample plot
+plt.figure(figsize=(6, 4))
+plt.plot([1, 2, 3, 4], [10, 20, 25, 30], label='Line 1')
+plt.plot([1, 2, 3, 4], [20, 25, 30, 35], label='Line 2')
+plt.xlabel('X-axis')
+plt.ylabel('Y-axis')
+plt.title('Simple Plot')
+plt.legend()
+plt.grid(True)
+plt.show()
+
