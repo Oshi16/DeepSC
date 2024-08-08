@@ -31,11 +31,9 @@ class BleuScore():
         for (sent1, sent2) in zip(real, predicted):
             sent1 = remove_tags(sent1).split()
             sent2 = remove_tags(sent2).split()
-            score.append(sentence_bleu([sent1], sent2, 
-                          weights=(self.w1, self.w2, self.w3, self.w4)))
+            score.append(sentence_bleu([sent1], sent2, weights=(self.w1, self.w2, self.w3, self.w4)))
         return score
             
-
 class LabelSmoothing(nn.Module):
     "Implement label smoothing."
     def __init__(self, size, padding_idx, smoothing=0.0):
