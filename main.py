@@ -14,7 +14,7 @@ from models.transceiver import DeepSC
 from models.mutual_info import Mine
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-%matplotlib inline
+#%matplotlib inline
 import matplotlib.pyplot as plt  # Import matplotlib for plotting
 
 # Argument parser to handle command-line arguments
