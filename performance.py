@@ -43,7 +43,7 @@ class Similarity():
      def __init__(self, config_path, checkpoint_path, dict_path):
          self.model1 = build_bert_model(config_path, checkpoint_path, with_pool=True)
          self.model = keras.Model(inputs=self.model1.input, outputs=self.model1.get_layer('Encoder-11-FeedForward-Norm').output)
-          build tokenizer
+     build tokenizer
          self.tokenizer = Tokenizer(dict_path, do_lower_case=True)
 
      def compute_similarity(self, real, predicted):
