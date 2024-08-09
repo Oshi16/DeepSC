@@ -190,8 +190,4 @@ plt.ylabel('Loss')
 plt.title('Training Loss vs Validation Loss')
 plt.legend()
 plt.grid(True)
-
-# Clear previous output and display
-clear_output(wait=True)
-display(plt.gcf())
 plt.show()
