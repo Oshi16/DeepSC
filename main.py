@@ -212,7 +212,8 @@ if __name__ == '__main__':
     plt.grid(True)
     plt.show()
 
-'''# -*- coding: utf-8 -*-
+'''
+# -*- coding: utf-8 -*-
 
 import os
 import argparse
@@ -405,3 +406,4 @@ plt.title('Training Loss vs Validation Loss')
 plt.legend()
 plt.grid(True)
 plt.show()
+'''
