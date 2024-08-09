@@ -78,8 +78,8 @@ class Similarity():
          vector1 = normalize(vector1, axis=0, norm='max')
          vector2 = normalize(vector2, axis=0, norm='max')
 
-         dot = np.diag(np.matmul(vector1, vector2.T))   a*b
-         a = np.diag(np.matmul(vector1, vector1.T))   a*a
+         dot = np.diag(np.matmul(vector1, vector2.T))   #a*b
+         a = np.diag(np.matmul(vector1, vector1.T))   #a*a
          b = np.diag(np.matmul(vector2, vector2.T))
 
          a = np.sqrt(a)
