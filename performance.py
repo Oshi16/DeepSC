@@ -1,5 +1,5 @@
 # !usr/bin/env python
-# -*- coding:utf-8 _*-
+# -*- coding:utf-8 _*
 
 import os
 import json
@@ -9,7 +9,7 @@ import numpy as np
 from dataset import EurDataset, collate_data
 from models.transceiver import DeepSC
 from torch.utils.data import DataLoader
-from utils import BleuScore, SNR_to_noise, greedy_decode, SeqtoText
+from utils import BleuScore, SNR_to_noise, greedy_decode, SeqtoText, beam_search_decode
 from tqdm import tqdm
 from sklearn.preprocessing import normalize
 # from bert4keras.backend import keras
@@ -20,7 +20,9 @@ from w3lib.html import remove_tags
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str)
 parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
-parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
+#parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR12-lr1e-4', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh', type=str)
+#parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str)
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
@@ -113,14 +115,17 @@ def performance(args, SNR, net):
                 target_word = []
                 noise_std = SNR_to_noise(snr)
 
-                for sents in test_iterator:
-
+                for i, sents in enumerate(test_iterator):
+                
                     sents = sents.to(device)
                     # src = batch.src.transpose(0, 1)[:1]
                     target = sents
 
-                    out = greedy_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
-                                        start_idx, args.channel)
+                    # out = greedy_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
+                                        # start_idx, args.channel)
+
+                    out = beam_search_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
+                                        start_idx, args.channel, beam_width=5)
 
                     sentences = out.cpu().numpy().tolist()
                     result_string = list(map(StoT.sequence_to_text, sentences))
@@ -156,7 +161,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     SNR = [0,3,6,9,12,15,18]
 
-    args.vocab_file = './' + args.vocab_file
+    #args.vocab_file = './' + args.vocab_file
     vocab = json.load(open(args.vocab_file, 'rb'))
     token_to_idx = vocab['token_to_idx']
     idx_to_token = dict(zip(token_to_idx.values(), token_to_idx.keys()))
