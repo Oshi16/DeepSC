@@ -43,11 +43,8 @@ class LabelSmoothing(nn.Module):
     def forward(self, x, target):
         assert x.size(1) == self.size
         true_dist = x.data.clone()
-        # 将数组全部填充为某一个值
         true_dist.fill_(self.smoothing / (self.size - 2)) 
-        # 按照index将input重新排列 
         true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence) 
-        # 第一行加入了<strat> 符号，不需要加入计算
         true_dist[:, self.padding_idx] = 0 #
         mask = torch.nonzero(target.data == self.padding_idx)
         if mask.dim() > 0:
@@ -86,11 +83,9 @@ class NoamOpt:
             step = self._step
             
         # if step <= 3000 :
-        #     lr = 1e-3
-            
+        #     lr = 1e-3    
         # if step > 3000 and step <=9000:
-        #     lr = 1e-4
-             
+        #     lr = 1e-4    
         # if step>9000:
         #     lr = 1e-5
          
@@ -180,7 +175,6 @@ def initNetParams(model):
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
-    # 产生下三角矩阵
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
     return torch.from_numpy(subsequent_mask)
 
@@ -334,9 +328,7 @@ def val_step(model, src, trg, n_var, pad, criterion, channel):
     return loss.item()
     
 def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel):
-    """ 
-    这里采用贪婪解码器，如果需要更好的性能情况下，可以使用beam search decode
-    """
+
     # create src_mask
     channels = Channels()
     src_mask = (src == padding_idx).unsqueeze(-2).type(torch.FloatTensor).to(device) #[batch, 1, seq_len]
