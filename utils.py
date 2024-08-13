@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jun  1 09:47:54 2020
 
-@author: HQ Xie
-utils.py
-"""
 import os 
 import math
 import torch
