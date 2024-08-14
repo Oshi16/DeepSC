@@ -20,11 +20,7 @@ import matplotlib.pyplot as plt  # Import matplotlib for plotting
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str)
 parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
-#parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
-parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh', type=str)
-parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-AWGNh', type=str)
-parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rician', type=str)
-parser.add_argument('--channel', default='Rayleigh', type=str, help='Communication channel type (AWGN, Rayleigh, or Rician)')
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints', type=str)
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
 parser.add_argument('--d-model', default=128, type=int)
@@ -32,7 +28,7 @@ parser.add_argument('--dff', default=512, type=int, help='Dimension of the feed-
 parser.add_argument('--num-layers', default=4, type=int)
 parser.add_argument('--num-heads', default=8, type=int)
 parser.add_argument('--batch-size', default=128, type=int)
-parser.add_argument('--epochs', default=20, type=int)
+parser.add_argument('--epochs', default=80, type=int)
 
 # Set device to GPU if available, otherwise use CPU
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -40,9 +36,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 def setup_seed(seed):
     """
     Set random seed for reproducibility.
-
-    Args:
-        seed (int): The seed value to use.
     """
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -53,21 +46,9 @@ def setup_seed(seed):
 def validate(epoch, args, net, criterion, snr=None):
     """
     Validate the model on the test dataset.
-
-    Args:
-        epoch (int): The current epoch number.
-        args: Command-line arguments.
-        net: The model to validate.
-        snr: Optional; specify an SNR value to override noise calculation.
-
-    Returns:
-        float: Average validation loss.
     """
-    # Load the test dataset
     test_eur = EurDataset('test', args.data_dir)
     test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0, pin_memory=True, collate_fn=collate_data)
-    
-    # Set model to evaluation mode
     net.eval()
     pbar = tqdm(test_iterator)
     total = 0
@@ -75,9 +56,7 @@ def validate(epoch, args, net, criterion, snr=None):
     with torch.no_grad():
         for sents in pbar:
             sents = sents.to(device)
-            # Override noise standard deviation if SNR is specified
             noise_std = SNR_to_noise(snr) if snr is not None else 0.1
-            # Compute validation loss
             loss = val_step(net, sents, sents, noise_std, pad_idx, criterion, args.channel)
             total += loss
             pbar.set_description(
@@ -85,26 +64,15 @@ def validate(epoch, args, net, criterion, snr=None):
                     epoch + 1, loss
                 )
             )
-
-    # Return average loss
     return total / len(test_iterator)
 
 def train(epoch, args, net, optimizer, criterion, mi_net=None):
     """
     Train the model on the training dataset.
-
-    Args:
-        epoch (int): The current epoch number.
-        args: Command-line arguments.
-        net: The model to train.
-        mi_net: Mutual information network (optional).
     """
-    # Load the training dataset
     train_eur = EurDataset('train', args.data_dir)
     train_iterator = DataLoader(train_eur, batch_size=args.batch_size, num_workers=0, pin_memory=True, collate_fn=collate_data)
     pbar = tqdm(train_iterator)
-
-    # Generate random noise standard deviation for channel
     noise_std = np.random.uniform(SNR_to_noise(0), SNR_to_noise(18), size=(1))
     total_loss = 0
 
@@ -112,7 +80,6 @@ def train(epoch, args, net, optimizer, criterion, mi_net=None):
         sents = sents.to(device)
 
         if mi_net is not None:
-            # Compute mutual information and training loss
             mi = train_mi(net, mi_net, sents, 0.1, pad_idx, mi_opt, args.channel)
             loss = train_step(net, sents, sents, 0.1, pad_idx, optimizer, criterion, args.channel, mi_net)
             pbar.set_description(
@@ -121,7 +88,6 @@ def train(epoch, args, net, optimizer, criterion, mi_net=None):
                 )
             )
         else:
-            # Compute training loss
             loss = train_step(net, sents, sents, noise_std[0], pad_idx, optimizer, criterion, args.channel)
             total_loss += loss
             pbar.set_description(
@@ -129,18 +95,14 @@ def train(epoch, args, net, optimizer, criterion, mi_net=None):
                     epoch + 1, loss
                 )
             )
-    
-    # Return average training loss
     return total_loss / len(train_iterator)
-
-
 
 def run_experiment(channel_type, args):
     """
     Run the experiment for a specific channel type (AWGN, Rayleigh, or Rician).
     """
     args.channel = channel_type
-    args.checkpoint_path = os.path.join(args.checkpoint_path, channel_type)
+    channel_checkpoint_path = os.path.join(args.checkpoint_path, channel_type)
     
     vocab = json.load(open(args.vocab_file, 'rb'))
     token_to_idx = vocab['token_to_idx']
@@ -167,9 +129,9 @@ def run_experiment(channel_type, args):
         validation_losses.append(avg_val_loss)
 
         if avg_val_loss < min(validation_losses):
-            if not os.path.exists(args.checkpoint_path):
-                os.makedirs(args.checkpoint_path)
-            with open(os.path.join(args.checkpoint_path, 'checkpoint_{}.pth'.format(str(epoch + 1).zfill(2))), 'wb') as f:
+            if not os.path.exists(channel_checkpoint_path):
+                os.makedirs(channel_checkpoint_path)
+            with open(os.path.join(channel_checkpoint_path, 'checkpoint_{}.pth'.format(str(epoch + 1).zfill(2))), 'wb') as f:
                 torch.save(deepsc.state_dict(), f)
 
     return training_losses, validation_losses
@@ -198,6 +160,7 @@ if __name__ == '__main__':
     for channel in channels:
         training_losses, validation_losses = run_experiment(channel, args)
         plot_losses(channel, training_losses, validation_losses)
+
 
 '''
 if __name__ == '__main__':
