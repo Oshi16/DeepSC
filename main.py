@@ -22,6 +22,8 @@ parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', 
 parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
 #parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh-SNR0-18-lr5e-5', type=str)
 parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rayleigh', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-AWGNh', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints/deepsc-Rician', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str, help='Communication channel type (AWGN, Rayleigh, or Rician)')
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
@@ -131,6 +133,73 @@ def train(epoch, args, net, optimizer, criterion, mi_net=None):
     # Return average training loss
     return total_loss / len(train_iterator)
 
+
+
+def run_experiment(channel_type, args):
+    """
+    Run the experiment for a specific channel type (AWGN, Rayleigh, or Rician).
+    """
+    args.channel = channel_type
+    args.checkpoint_path = os.path.join(args.checkpoint_path, channel_type)
+    
+    vocab = json.load(open(args.vocab_file, 'rb'))
+    token_to_idx = vocab['token_to_idx']
+    num_vocab = len(token_to_idx)
+    global pad_idx
+    pad_idx = token_to_idx["<PAD>"]
+
+    deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d_model, args.num_heads, args.dff, 0.1).to(device)
+    mi_net = Mine().to(device)
+    
+    criterion = nn.CrossEntropyLoss(reduction='none')
+    optimizer = torch.optim.Adam(deepsc.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay=5e-4)
+    mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3)
+    
+    initNetParams(deepsc)
+
+    training_losses = []
+    validation_losses = []
+
+    for epoch in range(args.epochs):
+        avg_train_loss = train(epoch, args, deepsc, optimizer, criterion)
+        training_losses.append(avg_train_loss)
+        avg_val_loss = validate(epoch, args, deepsc, criterion)
+        validation_losses.append(avg_val_loss)
+
+        if avg_val_loss < min(validation_losses):
+            if not os.path.exists(args.checkpoint_path):
+                os.makedirs(args.checkpoint_path)
+            with open(os.path.join(args.checkpoint_path, 'checkpoint_{}.pth'.format(str(epoch + 1).zfill(2))), 'wb') as f:
+                torch.save(deepsc.state_dict(), f)
+
+    return training_losses, validation_losses
+
+def plot_losses(channel_type, training_losses, validation_losses):
+    """
+    Plot the training and validation losses.
+    """
+    plt.figure(figsize=(10, 5))
+    epochs_range = list(range(1, len(training_losses) + 1))
+    plt.plot(epochs_range, training_losses, label='Training Loss')
+    plt.plot(epochs_range, validation_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title(f'Training Loss vs Validation Loss ({channel_type})')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    
+    setup_seed(42)
+    
+    channels = ['AWGN', 'Rayleigh', 'Rician']
+    for channel in channels:
+        training_losses, validation_losses = run_experiment(channel, args)
+        plot_losses(channel, training_losses, validation_losses)
+
+'''
 if __name__ == '__main__':
     args = parser.parse_args()
     
@@ -211,6 +280,7 @@ if __name__ == '__main__':
     plt.legend()
     plt.grid(True)
     plt.show()
+'''
 
 '''
 # -*- coding: utf-8 -*-
