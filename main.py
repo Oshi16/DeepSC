@@ -104,6 +104,11 @@ def run_experiment(channel_type, args):
     args.channel = channel_type
     channel_checkpoint_path = os.path.join(args.checkpoint_path, channel_type)
     
+    # Ensure the checkpoint directory exists before starting
+    if not os.path.exists(channel_checkpoint_path):
+        os.makedirs(channel_checkpoint_path)
+        print(f"Directory created: {channel_checkpoint_path}")
+    
     vocab = json.load(open(args.vocab_file, 'rb'))
     token_to_idx = vocab['token_to_idx']
     num_vocab = len(token_to_idx)
@@ -129,10 +134,11 @@ def run_experiment(channel_type, args):
         validation_losses.append(avg_val_loss)
 
         if avg_val_loss < min(validation_losses):
-            if not os.path.exists(channel_checkpoint_path):
-                os.makedirs(channel_checkpoint_path)
-            with open(os.path.join(channel_checkpoint_path, 'checkpoint_{}.pth'.format(str(epoch + 1).zfill(2))), 'wb') as f:
+            # Save checkpoint
+            checkpoint_filename = os.path.join(channel_checkpoint_path, f'checkpoint_{str(epoch + 1).zfill(2)}.pth')
+            with open(checkpoint_filename, 'wb') as f:
                 torch.save(deepsc.state_dict(), f)
+            print(f"Checkpoint saved: {checkpoint_filename}")
 
     return training_losses, validation_losses
 
