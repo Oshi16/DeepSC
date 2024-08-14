@@ -1,6 +1,3 @@
-# !usr/bin/env python
-# -*- coding:utf-8 _*
-
 import os
 import json
 import torch
@@ -130,13 +127,20 @@ if __name__ == '__main__':
         args.channel = channel
         channel_checkpoint_path = os.path.join(args.checkpoint_dir, channel)
 
+        # Create the directory if it doesn't exist
+        os.makedirs(channel_checkpoint_path, exist_ok=True)
+
         model_paths = []
         for fn in os.listdir(channel_checkpoint_path):
             if not fn.endswith('.pth'): continue
             idx = int(os.path.splitext(fn)[0].split('_')[-1])  # read the idx of image
             model_paths.append((os.path.join(channel_checkpoint_path, fn), idx))
 
-        model_paths.sort(key=lambda x: x[1])  # sort the image by the idx
+        if not model_paths:
+            print(f"No checkpoints found for {channel} channel. Skipping this channel.")
+            continue
+
+        model_paths.sort(key=lambda x: x[1])  # sort the checkpoints by index
 
         model_path, _ = model_paths[-1]
         checkpoint = torch.load(model_path)
