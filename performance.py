@@ -97,15 +97,21 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def performance(args, SNR, net):
     # similarity = Similarity(args.bert_config_path, args.bert_checkpoint_path, args.bert_dict_path)
+    # Define BLEU score objects for different n-grams
     bleu_score_1gram = BleuScore(1, 0, 0, 0)
+    bleu_score_2gram = BleuScore(0.5, 0.5, 0, 0)
+    bleu_score_3gram = BleuScore(0.33, 0.33, 0.33, 0)
+    bleu_score_4gram = BleuScore(0.25, 0.25, 0.25, 0.25)
 
     test_eur = EurDataset('test')
-    test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0,
-                               pin_memory=True, collate_fn=collate_data)
+    test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0, pin_memory=True, collate_fn=collate_data)
 
     StoT = SeqtoText(token_to_idx, end_idx)
-    score = []
-    score2 = []
+    score_1gram = []
+    score_2gram = []
+    score_3gram = []
+    score_4gram = []
+
     net.eval()
     with torch.no_grad():
         for epoch in range(args.epochs):
@@ -140,24 +146,48 @@ def performance(args, SNR, net):
                 Tx_word.append(word)
                 Rx_word.append(target_word)
 
-            bleu_score = []
+            bleu_score_1gram_list = []
+            bleu_score_2gram_list = []
+            bleu_score_3gram_list = []
+            bleu_score_4gram_list = []
             sim_score = []
+            
             for sent1, sent2 in zip(Tx_word, Rx_word):
-                # 1-gram
-                bleu_score.append(bleu_score_1gram.compute_blue_score(sent1, sent2)) # 7*num_sent
-                # sim_score.append(similarity.compute_similarity(sent1, sent2)) # 7*num_sent
-            bleu_score = np.array(bleu_score)
-            bleu_score = np.mean(bleu_score, axis=1)
-            score.append(bleu_score)
+                bleu_score_1gram_list.append(bleu_score_1gram.compute_blue_score(sent1, sent2))
+                bleu_score_2gram_list.append(bleu_score_2gram.compute_blue_score(sent1, sent2))
+                bleu_score_3gram_list.append(bleu_score_3gram.compute_blue_score(sent1, sent2))
+                bleu_score_4gram_list.append(bleu_score_4gram.compute_blue_score(sent1, sent2))
 
-            # sim_score = np.array(sim_score)
-            # sim_score = np.mean(sim_score, axis=1)
-            # score2.append(sim_score)
+            score_1gram.append(np.mean(bleu_score_1gram_list, axis=1))
+            score_2gram.append(np.mean(bleu_score_2gram_list, axis=1))
+            score_3gram.append(np.mean(bleu_score_3gram_list, axis=1))
+            score_4gram.append(np.mean(bleu_score_4gram_list, axis=1))
+            
+            # Print input and output sentences
+            print(f"SNR: {snr} dB")
+            for idx in range(min(len(Tx_word), 5)):  # Limiting to first 5 sentences for brevity
+                print(f"Input: {Tx_word[idx]}")
+                print(f"Output: {Rx_word[idx]}")
+                print()
+                
+# Plot BLEU score vs SNR for 1, 2, 3, 4-grams
+    plt.figure(figsize=(10, 6))
+    plt.plot(SNR, np.mean(np.array(score_1gram), axis=0), label="1-gram BLEU")
+    plt.plot(SNR, np.mean(np.array(score_2gram), axis=0), label="2-gram BLEU")
+    plt.plot(SNR, np.mean(np.array(score_3gram), axis=0), label="3-gram BLEU")
+    plt.plot(SNR, np.mean(np.array(score_4gram), axis=0), label="4-gram BLEU")
+    
+    plt.xlabel('SNR (dB)')
+    plt.ylabel('BLEU Score')
+    plt.title('BLEU Score vs SNR')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
-    score1 = np.mean(np.array(score), axis=0)
-    # score2 = np.mean(np.array(score2), axis=0)
-
-    return score1#, score2
+    return np.mean(np.array(score_1gram), axis=0), \
+           np.mean(np.array(score_2gram), axis=0), \
+           np.mean(np.array(score_3gram), axis=0), \
+           np.mean(np.array(score_4gram), axis=0)
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -173,9 +203,7 @@ if __name__ == '__main__':
     end_idx = token_to_idx["<END>"]
 
     """ define optimizer and loss function """
-    deepsc = DeepSC(args.num_layers, num_vocab, num_vocab,
-                        num_vocab, num_vocab, args.d_model, args.num_heads,
-                        args.dff, 0.1).to(device)
+    deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d_model, args.num_heads, args.dff, 0.1).to(device)
 
     model_paths = []
     for fn in os.listdir(args.checkpoint_path):
