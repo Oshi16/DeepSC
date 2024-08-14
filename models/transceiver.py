@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon May 25 20:33:53 2020
 
-@author: HQ Xie
-这是一个Transformer的网络结构
-"""
 """
 Transformer includes:
     Encoder
@@ -280,25 +275,3 @@ class DeepSC(nn.Module):
                                d_model, num_heads, dff, dropout)
         
         self.dense = nn.Linear(d_model, trg_vocab_size)
-
-
-
-    
-        
-        
-        
-        
-        
-
-    
-
-    
-    
-    
-    
-    
-
-
-    
-
-
