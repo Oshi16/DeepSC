@@ -1,3 +1,6 @@
+# !usr/bin/env python
+# -*- coding:utf-8 _*
+
 import os
 import json
 import torch
@@ -127,9 +130,11 @@ if __name__ == '__main__':
         args.channel = channel
         channel_checkpoint_path = os.path.join(args.checkpoint_dir, channel)
 
-        # Create the directory if it doesn't exist
-        os.makedirs(channel_checkpoint_path, exist_ok=True)
-
+        # Check if the directory exists; if not, create it
+        if not os.path.exists(channel_checkpoint_path):
+            os.makedirs(channel_checkpoint_path)
+            print(f"Directory created: {channel_checkpoint_path}")
+        
         model_paths = []
         for fn in os.listdir(channel_checkpoint_path):
             if not fn.endswith('.pth'): continue
@@ -137,10 +142,10 @@ if __name__ == '__main__':
             model_paths.append((os.path.join(channel_checkpoint_path, fn), idx))
 
         if not model_paths:
-            print(f"No checkpoints found for {channel} channel. Skipping this channel.")
+            print(f"No checkpoints found for {channel} channel. Skipping...")
             continue
 
-        model_paths.sort(key=lambda x: x[1])  # sort the checkpoints by index
+        model_paths.sort(key=lambda x: x[1])  # sort the image by the idx
 
         model_path, _ = model_paths[-1]
         checkpoint = torch.load(model_path)
@@ -149,6 +154,8 @@ if __name__ == '__main__':
 
         bleu_score = performance(args, SNR, deepsc, channel)
         print(f'BLEU Score for {channel} channel:', bleu_score)
+
+
 
 '''
 # !usr/bin/env python
