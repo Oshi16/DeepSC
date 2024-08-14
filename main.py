@@ -97,12 +97,12 @@ def train(epoch, args, net, optimizer, criterion, mi_net=None):
             )
     return total_loss / len(train_iterator)
 
-def run_experiment(channel_type, args):
+def run_experiment(channel, args):
     """
     Run the experiment for a specific channel type (AWGN, Rayleigh, or Rician).
     """
-    args.channel = channel_type
-    channel_checkpoint_path = os.path.join(args.checkpoint_path, channel_type)
+    args.channel = channel
+    channel_checkpoint_path = os.path.join(args.checkpoint_path, channel)
     
     # Ensure the checkpoint directory exists before starting
     if not os.path.exists(channel_checkpoint_path):
@@ -142,7 +142,7 @@ def run_experiment(channel_type, args):
 
     return training_losses, validation_losses
 
-def plot_losses(channel_type, training_losses, validation_losses):
+def plot_losses(channel, training_losses, validation_losses):
     """
     Plot the training and validation losses.
     """
@@ -152,7 +152,7 @@ def plot_losses(channel_type, training_losses, validation_losses):
     plt.plot(epochs_range, validation_losses, label='Validation Loss')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
-    plt.title(f'Training Loss vs Validation Loss ({channel_type})')
+    plt.title(f'Training Loss vs Validation Loss ({channel})')
     plt.legend()
     plt.grid(True)
     plt.show()
