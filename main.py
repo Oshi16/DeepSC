@@ -133,12 +133,20 @@ def run_experiment(channel, args):
         avg_val_loss = validate(epoch, args, deepsc, criterion)
         validation_losses.append(avg_val_loss)
 
+        # Save checkpoint at each epoch
+        checkpoint_filename = os.path.join(channel_checkpoint_path, f'checkpoint_{str(epoch + 1).zfill(2)}.pth')
+        with open(checkpoint_filename, 'wb') as f:
+            torch.save(deepsc.state_dict(), f)
+        print(f"Checkpoint saved: {checkpoint_filename}")
+
+'''
         if avg_val_loss < min(validation_losses):
             # Save checkpoint
             checkpoint_filename = os.path.join(channel_checkpoint_path, f'checkpoint_{str(epoch + 1).zfill(2)}.pth')
             with open(checkpoint_filename, 'wb') as f:
                 torch.save(deepsc.state_dict(), f)
             print(f"Checkpoint saved: {checkpoint_filename}")
+            '''
 
     return training_losses, validation_losses
 
