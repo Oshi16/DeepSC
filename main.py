@@ -138,6 +138,8 @@ def run_experiment(channel, args):
         with open(checkpoint_filename, 'wb') as f:
             torch.save(deepsc.state_dict(), f)
         print(f"Checkpoint saved: {checkpoint_filename}")
+    
+    return training_losses, validation_losses
 
 '''
         if avg_val_loss < min(validation_losses):
@@ -147,8 +149,6 @@ def run_experiment(channel, args):
                 torch.save(deepsc.state_dict(), f)
             print(f"Checkpoint saved: {checkpoint_filename}")
             '''
-
-    return training_losses, validation_losses
 
 def plot_losses(channel, training_losses, validation_losses):
     """
