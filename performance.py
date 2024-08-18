@@ -27,7 +27,7 @@ parser.add_argument('--dff', default=512, type=int)
 parser.add_argument('--num-layers', default=4, type=int)
 parser.add_argument('--num-heads', default=8, type=int)
 parser.add_argument('--batch-size', default=64, type=int)
-parser.add_argument('--epochs', default=2, type=int)
+parser.add_argument('--epochs', default=20, type=int)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def performance(args, SNR, net, channel_type):
@@ -125,6 +125,10 @@ if __name__ == '__main__':
     deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d_model, args.num_heads, args.dff, 0.1).to(device)
 
     channels = ['AWGN', 'Rayleigh', 'Rician']
+    
+    # If a specific channel is specified in the arguments, only run for that channel
+    if args.channel:
+        channels = [args.channel]
 
     for channel in channels:
         args.channel = channel
