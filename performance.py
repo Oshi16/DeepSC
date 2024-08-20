@@ -106,21 +106,21 @@ def performance(args, SNR, net, channel_type):
             score_3gram.append(np.mean(bleu_score_3gram_list, axis=1))
             score_4gram.append(np.mean(bleu_score_4gram_list, axis=1))
 
-            bleu_scores['1gram'].append(score_1gram.tolist())
-            bleu_scores['2gram'].append(score_2gram.tolist())
-            bleu_scores['3gram'].append(score_3gram.tolist())
-            bleu_scores['4gram'].append(score_4gram.tolist())
+            bleu_scores['1gram'].append(np.mean(bleu_score_1gram_list))
+            bleu_scores['2gram'].append(np.mean(bleu_score_2gram_list))
+            bleu_scores['3gram'].append(np.mean(bleu_score_3gram_list))
+            bleu_scores['4gram'].append(np.mean(bleu_score_4gram_list))
 
     # Save BLEU scores for this channel
     save_bleu_scores(channel_type, bleu_scores)
 
     # Plot BLEU score vs SNR for 1, 2, 3, 4-grams
     plt.figure(figsize=(10, 6))
-    plt.plot(SNR, np.mean(np.array(score_1gram), axis=0), label="1-gram BLEU")
-    plt.plot(SNR, np.mean(np.array(score_2gram), axis=0), label="2-gram BLEU")
-    plt.plot(SNR, np.mean(np.array(score_3gram), axis=0), label="3-gram BLEU")
-    plt.plot(SNR, np.mean(np.array(score_4gram), axis=0), label="4-gram BLEU")    
-    
+    plt.plot(SNR, bleu_scores['1gram'], label="1-gram BLEU")
+    plt.plot(SNR, bleu_scores['2gram'], label="2-gram BLEU")
+    plt.plot(SNR, bleu_scores['3gram'], label="3-gram BLEU")
+    plt.plot(SNR, bleu_scores['4gram'], label="4-gram BLEU")
+
     plt.xlabel('SNR (dB)')
     plt.ylabel('BLEU Score')
     plt.title(f'BLEU Score vs SNR ({channel_type} Channel)')
