@@ -28,7 +28,7 @@ parser.add_argument('--num-layers', default=4, type=int)
 parser.add_argument('--num-heads', default=8, type=int)
 parser.add_argument('--batch-size', default=64, type=int)
 parser.add_argument('--epochs', default=20, type=int)
-#parser.add_argument('--channel', type=str, choices=['AWGN', 'Rayleigh', 'Rician'], help='Specify which channel to run')
+parser.add_argument('--channel', type=str, choices=['AWGN', 'Rayleigh', 'Rician'], help='Specify which channel to run', required=True)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def save_bleu_scores(channel, bleu_scores):
@@ -149,7 +149,35 @@ if __name__ == '__main__':
     """ define optimizer and loss function """
     deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d_model, args.num_heads, args.dff, 0.1).to(device)
 
-    channels = ['AWGN', 'Rayleigh', 'Rician']
+    channel = args.channel
+    channel_checkpoint_path = os.path.join(args.checkpoint_dir, channel)
+
+    # Check if the directory exists
+    if not os.path.exists(channel_checkpoint_path):
+        print(f"Directory does not exist: {channel_checkpoint_path}")
+        exit()
+
+    model_paths = []
+    for fn in os.listdir(channel_checkpoint_path):
+        if not fn.endswith('.pth'): continue
+        idx = int(os.path.splitext(fn)[0].split('_')[-1])  # read the idx of the file
+        model_paths.append((os.path.join(channel_checkpoint_path, fn), idx))
+
+    if not model_paths:
+        print(f"No checkpoints found for {channel} channel. Exiting...")
+        exit()
+
+    model_paths.sort(key=lambda x: x[1])  # sort the files by the idx
+
+    model_path, _ = model_paths[-1]
+    checkpoint = torch.load(model_path)
+    deepsc.load_state_dict(checkpoint)
+    print(f'Model for {channel} channel loaded!')
+
+    bleu_score = performance(args, SNR, deepsc, channel)
+    print(f'BLEU Score for {channel} channel:', bleu_score)
+
+    '''channels = ['AWGN', 'Rayleigh', 'Rician']
     
     # If a specific channel is specified in the arguments, only run for that channel
     #if args.channel:
@@ -182,4 +210,4 @@ if __name__ == '__main__':
         print(f'Model for {channel} channel loaded!')
 
         bleu_score = performance(args, SNR, deepsc, channel)
-        print(f'BLEU Score for {channel} channel:', bleu_score)
+        print(f'BLEU Score for {channel} channel:', bleu_score)'''
