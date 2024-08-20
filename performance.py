@@ -31,6 +31,12 @@ parser.add_argument('--epochs', default=20, type=int)
 #parser.add_argument('--channel', type=str, choices=['AWGN', 'Rayleigh', 'Rician'], help='Specify which channel to run')
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+def save_bleu_scores(channel, bleu_scores):
+    output_path = f'bleu_scores_{channel}.json'
+    with open(output_path, 'w') as f:
+        json.dump(bleu_scores, f, indent=4)
+    print(f"BLEU scores saved to {output_path}")
+
 def performance(args, SNR, net, channel_type):
     bleu_score_1gram = BleuScore(1, 0, 0, 0)
     bleu_score_2gram = BleuScore(0.5, 0.5, 0, 0)
@@ -45,6 +51,8 @@ def performance(args, SNR, net, channel_type):
     score_2gram = []
     score_3gram = []
     score_4gram = []
+
+    bleu_scores = {'1gram': [], '2gram': [], '3gram': [], '4gram': []}
 
     net.eval()
     with torch.no_grad():
@@ -75,6 +83,13 @@ def performance(args, SNR, net, channel_type):
                 Tx_word.append(word)
                 Rx_word.append(target_word)
 
+                # Print 3 examples for this SNR level
+                print(f"SNR: {snr} dB, Channel: {channel_type}")
+                for tx, rx in zip(Tx_word[-1][:3], Rx_word[-1][:3]):
+                    print(f"Transmitted: {tx}")
+                    print(f"Received:    {rx}")
+                    print("")
+
             bleu_score_1gram_list = []
             bleu_score_2gram_list = []
             bleu_score_3gram_list = []
@@ -91,12 +106,20 @@ def performance(args, SNR, net, channel_type):
             score_3gram.append(np.mean(bleu_score_3gram_list, axis=1))
             score_4gram.append(np.mean(bleu_score_4gram_list, axis=1))
 
+            bleu_scores['1gram'].append(score_1gram.tolist())
+            bleu_scores['2gram'].append(score_2gram.tolist())
+            bleu_scores['3gram'].append(score_3gram.tolist())
+            bleu_scores['4gram'].append(score_4gram.tolist())
+
+    # Save BLEU scores for this channel
+    save_bleu_scores(channel_type, bleu_scores)
+
     # Plot BLEU score vs SNR for 1, 2, 3, 4-grams
     plt.figure(figsize=(10, 6))
     plt.plot(SNR, np.mean(np.array(score_1gram), axis=0), label="1-gram BLEU")
     plt.plot(SNR, np.mean(np.array(score_2gram), axis=0), label="2-gram BLEU")
     plt.plot(SNR, np.mean(np.array(score_3gram), axis=0), label="3-gram BLEU")
-    plt.plot(SNR, np.mean(np.array(score_4gram), axis=0), label="4-gram BLEU")
+    plt.plot(SNR, np.mean(np.array(score_4gram), axis=0), label="4-gram BLEU")    
     
     plt.xlabel('SNR (dB)')
     plt.ylabel('BLEU Score')
@@ -105,10 +128,11 @@ def performance(args, SNR, net, channel_type):
     plt.grid(True)
     plt.show()
 
-    return np.mean(np.array(score_1gram), axis=0), \
+    return bleu_scores
+    '''return np.mean(np.array(score_1gram), axis=0), \
            np.mean(np.array(score_2gram), axis=0), \
            np.mean(np.array(score_3gram), axis=0), \
-           np.mean(np.array(score_4gram), axis=0)
+           np.mean(np.array(score_4gram), axis=0)'''
 
 if __name__ == '__main__':
     args = parser.parse_args()
