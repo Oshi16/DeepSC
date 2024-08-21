@@ -69,14 +69,6 @@ def performance(args, SNR, net, channel_type):
                     sents = sents.to(device)
                     target = sents
 
-                    # Store original sentences (before noise is added)
-                    original_sentences = target.cpu().numpy().tolist()
-                    original_string = list(map(StoT.sequence_to_text, original_sentences))
-
-                    # Generate noisy transmitted signal
-                    noisy_input = sents.float() + torch.randn_like(sents.float()) * noise_std
-
-
                     out = beam_search_decode(net, noisy_input, noise_std, args.MAX_LENGTH, pad_idx,
                          start_idx, channel_type, beam_width=5)
 
@@ -90,14 +82,6 @@ def performance(args, SNR, net, channel_type):
 
                 Tx_word.append(word)
                 Rx_word.append(target_word)
-
-                # Print 1 examples for this SNR level
-                print(f"SNR: {snr} dB, Channel: {channel_type}")
-                for orig, tx, rx in zip(original_string[:1], word[:1], target_word[:1]):
-                    print(f"Original:    {orig}")
-                    print(f"Transmitted: {tx}")
-                    print(f"Received:    {rx}")
-                    print("")
                     
             bleu_score_1gram_list = []
             bleu_score_2gram_list = []
