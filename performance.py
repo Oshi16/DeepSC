@@ -74,10 +74,11 @@ def performance(args, SNR, net, channel_type):
                     original_string = list(map(StoT.sequence_to_text, original_sentences))
 
                     # Generate noisy transmitted signal
-                    noisy_input = sents + torch.randn_like(sents) * noise_std
+                    noisy_input = sents.float() + torch.randn_like(sents.float()) * noise_std
 
-                    out = beam_search_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
-                                             start_idx, channel_type, beam_width=5)
+
+                    out = beam_search_decode(net, noisy_input, noise_std, args.MAX_LENGTH, pad_idx,
+                         start_idx, channel_type, beam_width=5)
 
                     sentences = out.cpu().numpy().tolist()
                     result_string = list(map(StoT.sequence_to_text, sentences))
