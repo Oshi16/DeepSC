@@ -69,6 +69,20 @@ def performance(args, SNR, net, channel_type):
                     sents = sents.to(device)
                     target = sents
 
+                    # For the first example only
+                    if i == 0 and snr == SNR[0]:
+                        original_sentence = StoT.sequence_to_text(target[0].cpu().numpy())
+                        noisy_input = sents + torch.randn_like(sents) * noise_std
+                        out = beam_search_decode(net, noisy_input, noise_std, args.MAX_LENGTH, pad_idx, start_idx, channel_type, beam_width=5)
+                        received_sentence = StoT.sequence_to_text(out[0].cpu().numpy())
+
+                        # Print the original, noisy, and received sentences
+                        print(f"SNR: {snr} dB, Channel: {channel_type}")
+                        print(f"Original Sentence: {original_sentence}")
+                        print(f"Noisy Signal (Transmitted): {StoT.sequence_to_text(noisy_input[0].cpu().numpy())}")
+                        print(f"Received Sentence: {received_sentence}")
+                        print("")
+
                     out = beam_search_decode(net, noisy_input, noise_std, args.MAX_LENGTH, pad_idx,
                          start_idx, channel_type, beam_width=5)
 
