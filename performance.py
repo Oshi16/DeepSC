@@ -67,7 +67,7 @@ def performance(args, SNR, net, channel_type):
                 noise_std = SNR_to_noise(snr)
 
                 for i, sents in enumerate(test_iterator):
-                    sents = sents.to(device)
+                    sents = sents.to(device).long()  # Convert to LongTensor
                     target = sents
 
                     # Get noisy input
