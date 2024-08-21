@@ -69,6 +69,117 @@ def performance(args, SNR, net, channel_type):
                     sents = sents.to(device)
                     target = sents
 
+                    # Get noisy input
+                    channels = Channels()
+                    Tx_sig = net.channel_encoder(net.encoder(sents, None))
+                    Tx_sig = PowerNormalize(Tx_sig)
+                    if channel_type == 'AWGN':
+                        noisy_input = channels.AWGN(Tx_sig, noise_std)
+                    elif channel_type == 'Rayleigh':
+                        noisy_input = channels.Rayleigh(Tx_sig, noise_std)
+                    elif channel_type == 'Rician':
+                        noisy_input = channels.Rician(Tx_sig, noise_std)
+                    else:
+                        raise ValueError("Please choose from AWGN, Rayleigh, and Rician")
+
+                    out = beam_search_decode(net, noisy_input, noise_std, args.MAX_LENGTH, pad_idx,
+                                             start_idx, channel_type, beam_width=5)
+
+                    sentences = out.cpu().numpy().tolist()
+                    result_string = list(map(StoT.sequence_to_text, sentences))
+                    word = word + result_string
+
+                    target_sent = target.cpu().numpy().tolist()
+                    result_string = list(map(StoT.sequence_to_text, target_sent))
+                    target_word = target_word + result_string
+
+                Tx_word.append(word)
+                Rx_word.append(target_word)
+
+                # Print original, transmitted (noisy), and received for the first sentence
+                if i == 0:  # Just print the first example
+                    original_sentence = StoT.sequence_to_text(target[0].cpu().numpy().tolist())
+                    transmitted_signal = noisy_input[0].cpu().numpy()  # This is the noisy signal
+                    received_sentence = word[0]
+
+                    print(f"SNR: {snr} dB, Channel: {channel_type}")
+                    print(f"Original Sentence: {original_sentence}")
+                    print(f"Transmitted (Noisy) Signal: {transmitted_signal}")
+                    print(f"Received Sentence: {received_sentence}\n")
+
+            bleu_score_1gram_list = []
+            bleu_score_2gram_list = []
+            bleu_score_3gram_list = []
+            bleu_score_4gram_list = []
+
+            for sent1, sent2 in zip(Tx_word, Rx_word):
+                bleu_score_1gram_list.append(bleu_score_1gram.compute_blue_score(sent1, sent2))
+                bleu_score_2gram_list.append(bleu_score_2gram.compute_blue_score(sent1, sent2))
+                bleu_score_3gram_list.append(bleu_score_3gram.compute_blue_score(sent1, sent2))
+                bleu_score_4gram_list.append(bleu_score_4gram.compute_blue_score(sent1, sent2))
+
+            score_1gram.append(np.mean(bleu_score_1gram_list, axis=1))
+            score_2gram.append(np.mean(bleu_score_2gram_list, axis=1))
+            score_3gram.append(np.mean(bleu_score_3gram_list, axis=1))
+            score_4gram.append(np.mean(bleu_score_4gram_list, axis=1))
+
+            bleu_scores['1gram'].append(np.mean(bleu_score_1gram_list))
+            bleu_scores['2gram'].append(np.mean(bleu_score_2gram_list))
+            bleu_scores['3gram'].append(np.mean(bleu_score_3gram_list))
+            bleu_scores['4gram'].append(np.mean(bleu_score_4gram_list))
+
+    # Save BLEU scores for this channel
+    save_bleu_scores(channel_type, bleu_scores)
+
+    # Plot BLEU score vs SNR for 1, 2, 3, 4-grams
+    plt.figure(figsize=(10, 6))
+    plt.plot(SNR, bleu_scores['1gram'], label="1-gram BLEU")
+    plt.plot(SNR, bleu_scores['2gram'], label="2-gram BLEU")
+    plt.plot(SNR, bleu_scores['3gram'], label="3-gram BLEU")
+    plt.plot(SNR, bleu_scores['4gram'], label="4-gram BLEU")
+
+    plt.xlabel('SNR (dB)')
+    plt.ylabel('BLEU Score')
+    plt.title(f'BLEU Score vs SNR ({channel_type} Channel)')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    return bleu_scores
+
+'''
+def performance(args, SNR, net, channel_type):
+    bleu_score_1gram = BleuScore(1, 0, 0, 0)
+    bleu_score_2gram = BleuScore(0.5, 0.5, 0, 0)
+    bleu_score_3gram = BleuScore(0.33, 0.33, 0.33, 0)
+    bleu_score_4gram = BleuScore(0.25, 0.25, 0.25, 0.25)
+
+    test_eur = EurDataset('test')
+    test_iterator = DataLoader(test_eur, batch_size=args.batch_size, num_workers=0, pin_memory=True, collate_fn=collate_data)
+
+    StoT = SeqtoText(token_to_idx, end_idx)
+    score_1gram = []
+    score_2gram = []
+    score_3gram = []
+    score_4gram = []
+
+    bleu_scores = {'1gram': [], '2gram': [], '3gram': [], '4gram': []}
+
+    net.eval()
+    with torch.no_grad():
+        for epoch in range(args.epochs):
+            Tx_word = []
+            Rx_word = []
+
+            for snr in tqdm(SNR):
+                word = []
+                target_word = []
+                noise_std = SNR_to_noise(snr)
+
+                for i, sents in enumerate(test_iterator):
+                    sents = sents.to(device)
+                    target = sents
+
                     out = beam_search_decode(net, noisy_input, noise_std, args.MAX_LENGTH, pad_idx,
                          start_idx, channel_type, beam_width=5)
 
@@ -122,6 +233,7 @@ def performance(args, SNR, net, channel_type):
     plt.show()
 
     return bleu_scores
+'''
 
 if __name__ == '__main__':
     args = parser.parse_args()
