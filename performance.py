@@ -242,7 +242,7 @@ def performance(args, SNR, net, channel_type):
     plt.grid(True)
     plt.show()
 
-    return bleu_scores
+    return bleu_scores'''
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -285,4 +285,4 @@ if __name__ == '__main__':
     print(f'Model for {channel} channel loaded!')
 
     bleu_score = performance(args, SNR, deepsc, channel)
-    print(f'BLEU Score for {channel} channel:', bleu_score)'''
+    print(f'BLEU Score for {channel} channel:', bleu_score)
