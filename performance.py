@@ -12,6 +12,9 @@ from torch.utils.data import DataLoader
 from utils import BleuScore, SNR_to_noise, greedy_decode, SeqtoText, beam_search_decode
 from tqdm import tqdm
 from sklearn.preprocessing import normalize
+# from bert4keras.backend import keras
+# from bert4keras.models import build_bert_model
+# from bert4keras.tokenizers import Tokenizer
 from w3lib.html import remove_tags
 
 import matplotlib.pyplot as plt
@@ -29,7 +32,61 @@ parser.add_argument('--num-heads', default=8, type=int)
 parser.add_argument('--batch-size', default=64, type=int)
 parser.add_argument('--epochs', default=1, type=int)
 parser.add_argument('--channel', type=str, choices=['AWGN', 'Rayleigh', 'Rician'], help='Specify which channel to run', required=True)
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+# using pre-trained model to compute the sentence similarity
+# class Similarity():
+#     def __init__(self, config_path, checkpoint_path, dict_path):
+#         self.model1 = build_bert_model(config_path, checkpoint_path, with_pool=True)
+#         self.model = keras.Model(inputs=self.model1.input,
+#                                  outputs=self.model1.get_layer('Encoder-11-FeedForward-Norm').output)
+#         # build tokenizer
+#         self.tokenizer = Tokenizer(dict_path, do_lower_case=True)
+#
+#     def compute_similarity(self, real, predicted):
+#         token_ids1, segment_ids1 = [], []
+#         token_ids2, segment_ids2 = [], []
+#         score = []
+#
+#         for (sent1, sent2) in zip(real, predicted):
+#             sent1 = remove_tags(sent1)
+#             sent2 = remove_tags(sent2)
+#
+#             ids1, sids1 = self.tokenizer.encode(sent1)
+#             ids2, sids2 = self.tokenizer.encode(sent2)
+#
+#             token_ids1.append(ids1)
+#             token_ids2.append(ids2)
+#             segment_ids1.append(sids1)
+#             segment_ids2.append(sids2)
+#
+#         token_ids1 = keras.preprocessing.sequence.pad_sequences(token_ids1, maxlen=32, padding='post')
+#         token_ids2 = keras.preprocessing.sequence.pad_sequences(token_ids2, maxlen=32, padding='post')
+#
+#         segment_ids1 = keras.preprocessing.sequence.pad_sequences(segment_ids1, maxlen=32, padding='post')
+#         segment_ids2 = keras.preprocessing.sequence.pad_sequences(segment_ids2, maxlen=32, padding='post')
+#
+#         vector1 = self.model.predict([token_ids1, segment_ids1])
+#         vector2 = self.model.predict([token_ids2, segment_ids2])
+#
+#         vector1 = np.sum(vector1, axis=1)
+#         vector2 = np.sum(vector2, axis=1)
+#
+#         vector1 = normalize(vector1, axis=0, norm='max')
+#         vector2 = normalize(vector2, axis=0, norm='max')
+#
+#         dot = np.diag(np.matmul(vector1, vector2.T))  # a*b
+#         a = np.diag(np.matmul(vector1, vector1.T))  # a*a
+#         b = np.diag(np.matmul(vector2, vector2.T))
+#
+#         a = np.sqrt(a)
+#         b = np.sqrt(b)
+#
+#         output = dot / (a * b)
+#         score = output.tolist()
+#
+#         return score
 
 def save_bleu_scores(channel, bleu_scores):
     output_path = f'bleu_scores_{channel}.json'
@@ -38,6 +95,7 @@ def save_bleu_scores(channel, bleu_scores):
     print(f"BLEU scores saved to {output_path}")
 
 def performance(args, SNR, net, channel_type):
+    # similarity = Similarity(args.bert_config_path, args.bert_checkpoint_path, args.bert_dict_path)
     bleu_score_1gram = BleuScore(1, 0, 0, 0)
     bleu_score_2gram = BleuScore(0.5, 0.5, 0, 0)
     bleu_score_3gram = BleuScore(0.33, 0.33, 0.33, 0)
@@ -69,6 +127,9 @@ def performance(args, SNR, net, channel_type):
                     sents = sents.to(device)
                     target = sents
 
+                    # out = greedy_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
+                                        # start_idx, args.channel)
+                    
                     out = beam_search_decode(net, sents, noise_std, args.MAX_LENGTH, pad_idx,
                                              start_idx, channel_type, beam_width=5)
 
@@ -100,6 +161,7 @@ def performance(args, SNR, net, channel_type):
                 bleu_score_2gram_list.append(bleu_score_2gram.compute_blue_score(sent1, sent2))
                 bleu_score_3gram_list.append(bleu_score_3gram.compute_blue_score(sent1, sent2))
                 bleu_score_4gram_list.append(bleu_score_4gram.compute_blue_score(sent1, sent2))
+                # sim_score.append(similarity.compute_similarity(sent1, sent2)) # 7*num_sent               
 
             score_1gram.append(np.mean(bleu_score_1gram_list, axis=1))
             score_2gram.append(np.mean(bleu_score_2gram_list, axis=1))
@@ -110,9 +172,13 @@ def performance(args, SNR, net, channel_type):
             bleu_scores['2gram'].append(np.mean(bleu_score_2gram_list))
             bleu_scores['3gram'].append(np.mean(bleu_score_3gram_list))
             bleu_scores['4gram'].append(np.mean(bleu_score_4gram_list))
+            # sim_score = np.array(sim_score)
+            # sim_score = np.mean(sim_score, axis=1)
+            # score2.append(sim_score)
 
     # Save BLEU scores for this channel
     save_bleu_scores(channel_type, bleu_scores)
+    # score2 = np.mean(np.array(score2), axis=0)
 
     # Plot BLEU score vs SNR for 1, 2, 3, 4-grams
     plt.figure(figsize=(10, 6))
@@ -128,11 +194,7 @@ def performance(args, SNR, net, channel_type):
     plt.grid(True)
     plt.show()
 
-    return bleu_scores
-    '''return np.mean(np.array(score_1gram), axis=0), \
-           np.mean(np.array(score_2gram), axis=0), \
-           np.mean(np.array(score_3gram), axis=0), \
-           np.mean(np.array(score_4gram), axis=0)'''
+    return bleu_scores#, score2
 
 if __name__ == '__main__':
     args = parser.parse_args()
