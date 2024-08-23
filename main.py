@@ -115,62 +115,6 @@ def run_experiment(channel, args):
     global pad_idx
     pad_idx = token_to_idx["<PAD>"]
 
-    deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d.model, args.num_heads, args.dff, 0.1).to(device)
-    mi_net = Mine().to(device)
-    
-    criterion = nn.CrossEntropyLoss(reduction='none')
-    optimizer = torch.optim.Adam(deepsc.parameters(), lr=5e-5, betas=(0.9, 0.98), eps=1e-8, weight_decay=5e-4)
-    mi_opt = torch.optim.Adam(mi_net.parameters(), lr=1e-3)
-    
-    initNetParams(deepsc)
-
-    # Check for existing checkpoint
-    start_epoch = 20  # Start from the 21st epoch
-    checkpoint_files = sorted([f for f in os.listdir(channel_checkpoint_path) if f.endswith('.pth')])
-    if checkpoint_files:
-        latest_checkpoint = os.path.join(channel_checkpoint_path, checkpoint_files[-1])
-        print(f"Loading checkpoint {latest_checkpoint}")
-        checkpoint = torch.load(latest_checkpoint)
-        deepsc.load_state_dict(checkpoint)  # Load the model state directly
-        # If optimizer state was saved, load it as well
-        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = int(latest_checkpoint.split('_')[-1].split('.')[0]) + 1  # Start from the next epoch
-
-    training_losses = []
-    validation_losses = []
-
-    for epoch in range(start_epoch, args.epochs):  # Start from the correct epoch
-        avg_train_loss = train(epoch, args, deepsc, optimizer, criterion)
-        training_losses.append(avg_train_loss)
-        avg_val_loss = validate(epoch, args, deepsc, criterion)
-        validation_losses.append(avg_val_loss)
-
-        # Save checkpoint at each epoch
-        checkpoint_filename = os.path.join(channel_checkpoint_path, f'checkpoint_{str(epoch + 1).zfill(2)}.pth')
-        with open(checkpoint_filename, 'wb') as f:
-            torch.save(deepsc.state_dict(), f)  # Save model state directly
-        print(f"Checkpoint saved: {checkpoint_filename}")
-    
-    return training_losses, validation_losses
-
-'''def run_experiment(channel, args):
-    """
-    Run the experiment for a specific channel type (AWGN, Rayleigh, or Rician).
-    """
-    args.channel = channel
-    channel_checkpoint_path = os.path.join(args.checkpoint_path, channel)
-    
-    # Ensure the checkpoint directory exists before starting
-    if not os.path.exists(channel_checkpoint_path):
-        os.makedirs(channel_checkpoint_path)
-        print(f"Directory created: {channel_checkpoint_path}")
-    
-    vocab = json.load(open(args.vocab_file, 'rb'))
-    token_to_idx = vocab['token_to_idx']
-    num_vocab = len(token_to_idx)
-    global pad_idx
-    pad_idx = token_to_idx["<PAD>"]
-
     deepsc = DeepSC(args.num_layers, num_vocab, num_vocab, num_vocab, num_vocab, args.d_model, args.num_heads, args.dff, 0.1).to(device)
     mi_net = Mine().to(device)
     
@@ -181,20 +125,22 @@ def run_experiment(channel, args):
     initNetParams(deepsc)
 
     # Check for existing checkpoint
-    start_epoch = 20  # Start from the 21st epoch
+    start_epoch = 20
     checkpoint_files = sorted([f for f in os.listdir(channel_checkpoint_path) if f.endswith('.pth')])
     if checkpoint_files:
         latest_checkpoint = os.path.join(channel_checkpoint_path, checkpoint_files[-1])
         print(f"Loading checkpoint {latest_checkpoint}")
         checkpoint = torch.load(latest_checkpoint)
-        deepsc.load_state_dict(checkpoint['model_state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-        start_epoch = checkpoint['epoch'] + 1  # Resume from the next epoch
+        deepsc.load_state_dict(checkpoint)
+        # If you saved optimizer and epoch in the checkpoint, load them as well:
+        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # start_epoch = checkpoint['epoch'] + 1
+        start_epoch = int(latest_checkpoint.split('_')[-1].split('.')[0])
 
     training_losses = []
     validation_losses = []
 
-    for epoch in range(start_epoch, args.epochs):  # Start from the correct epoch
+    for epoch in range(args.epochs):
         avg_train_loss = train(epoch, args, deepsc, optimizer, criterion)
         training_losses.append(avg_train_loss)
         avg_val_loss = validate(epoch, args, deepsc, criterion)
@@ -212,7 +158,6 @@ def run_experiment(channel, args):
         print(f"Checkpoint saved: {checkpoint_filename}")
     
     return training_losses, validation_losses
-    '''
 
 '''
         if avg_val_loss < min(validation_losses):
