@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt  # Import matplotlib for plotting
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-dir', default='/content/drive/MyDrive/DeepSC_data', type=str)
 parser.add_argument('--vocab-file', default='/content/drive/MyDrive/DeepSC_data/vocab.json', type=str)
-parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/DeepSC_checkpoints', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/Sparse_DeepSC_checkpoints', type=str)
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
 parser.add_argument('--d-model', default=128, type=int)
