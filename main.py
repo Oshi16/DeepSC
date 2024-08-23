@@ -149,7 +149,12 @@ def run_experiment(channel, args):
         # Save checkpoint at each epoch
         checkpoint_filename = os.path.join(channel_checkpoint_path, f'checkpoint_{str(epoch + 1).zfill(2)}.pth')
         with open(checkpoint_filename, 'wb') as f:
-            torch.save(deepsc.state_dict(), f)
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': deepsc.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                # Include any other states you want to save
+            }, f)
         print(f"Checkpoint saved: {checkpoint_filename}")
     
     return training_losses, validation_losses
