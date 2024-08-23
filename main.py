@@ -124,6 +124,19 @@ def run_experiment(channel, args):
     
     initNetParams(deepsc)
 
+    # Check for existing checkpoint
+    start_epoch = 0
+    checkpoint_files = sorted([f for f in os.listdir(channel_checkpoint_path) if f.endswith('.pth')])
+    if checkpoint_files:
+        latest_checkpoint = os.path.join(channel_checkpoint_path, checkpoint_files[-1])
+        print(f"Loading checkpoint {latest_checkpoint}")
+        checkpoint = torch.load(latest_checkpoint)
+        deepsc.load_state_dict(checkpoint)
+        # If you saved optimizer and epoch in the checkpoint, load them as well:
+        # optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        # start_epoch = checkpoint['epoch'] + 1
+        start_epoch = int(latest_checkpoint.split('_')[-1].split('.')[0])
+
     training_losses = []
     validation_losses = []
 
