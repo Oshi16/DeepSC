@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
 """
-Transformer includes:
+Sparse Transformer includes:
     Encoder
         1. Positional coding
-        2. Multihead-attention
+        2. SparseMultiHeadedAttention
         3. PositionwiseFeedForward
     Decoder
         1. Positional coding
-        2. Multihead-attention
-        3. Multihead-attention
+        2. SparseMultiHeadedAttention (self-attention)
+        3. SparseMultiHeadedAttention (encoder-decoder attention)
         4. PositionwiseFeedForward
 """
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
