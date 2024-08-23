@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Mon Jun  1 09:47:54 2020
 
-@author: HQ Xie
-utils.py
-"""
 import os 
 import math
 import torch
@@ -32,7 +27,6 @@ class BleuScore():
             score.append(sentence_bleu([sent1], sent2, 
                           weights=(self.w1, self.w2, self.w3, self.w4)))
         return score
-            
 
 class LabelSmoothing(nn.Module):
     "Implement label smoothing."
@@ -59,7 +53,6 @@ class LabelSmoothing(nn.Module):
             true_dist.index_fill_(0, mask.squeeze(), 0.0)
         self.true_dist = true_dist
         return self.criterion(x, true_dist)
-
 
 class NoamOpt:
     "Optim wrapper that implements rate."
@@ -105,9 +98,6 @@ class NoamOpt:
   
         return lr
     
-
-        # return lr
-    
     def weight_decay(self, step = None):
         "Implement `lrate` above"
         if step is None:
@@ -141,7 +131,6 @@ class SeqtoText:
                 words.append(self.reverse_word_map.get(idx))
         words = ' '.join(words)
         return(words) 
-
 
 class Channels():
 
@@ -185,15 +174,12 @@ def initNetParams(model):
 def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
-    # 产生下三角矩阵
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
     return torch.from_numpy(subsequent_mask)
 
-    
 def create_masks(src, trg, padding_idx):
 
     src_mask = (src == padding_idx).unsqueeze(-2).type(torch.FloatTensor) #[batch, 1, seq_len]
-
     trg_mask = (trg == padding_idx).unsqueeze(-2).type(torch.FloatTensor) #[batch, 1, seq_len]
     look_ahead_mask = subsequent_mask(trg.size(-1)).type_as(trg_mask.data)
     combined_mask = torch.max(trg_mask, look_ahead_mask)
@@ -276,7 +262,6 @@ def train_step(model, src, trg, n_var, pad, opt, criterion, channel, mi_net=None
 
     return loss.item()
 
-
 def train_mi(model, mi_net, src, n_var, padding_idx, opt, channel):
     mi_net.train()
     opt.zero_grad()
@@ -339,9 +324,7 @@ def val_step(model, src, trg, n_var, pad, criterion, channel):
     return loss.item()
     
 def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel):
-    """ 
-    这里采用贪婪解码器，如果需要更好的性能情况下，可以使用beam search decode
-    """
+
     # create src_mask
     channels = Channels()
     src_mask = (src == padding_idx).unsqueeze(-2).type(torch.FloatTensor).to(device) #[batch, 1, seq_len]
@@ -389,6 +372,3 @@ def greedy_decode(model, src, n_var, max_len, padding_idx, start_symbol, channel
         outputs = torch.cat([outputs, next_word], dim=1)
 
     return outputs
-
-
-
