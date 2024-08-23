@@ -40,52 +40,47 @@ class PositionalEncoding(nn.Module):
         x = self.dropout(x)
         return x
       
-class SparseMultiHeadedAttention(nn.Module):
-    def __init__(self, num_heads, d_model, stride, dropout=0.1):
-        super(SparseMultiHeadedAttention, self).__init__()
-        assert d_model % num_heads == 0
-        self.d_k = d_model // num_heads
+class SparseMultiheadAttention(nn.Module):
+    """Sparse multihead attention using a limited attention span."""
+    def __init__(self, embed_dim, num_heads, dropout=0.1, attn_span=50):
+        super().__init__()
+        self.embed_dim = embed_dim
         self.num_heads = num_heads
-        self.stride = stride
+        self.dropout = dropout
+        self.attn_span = attn_span
+        self.head_dim = embed_dim // num_heads
+        if self.head_dim * num_heads != self.embed_dim:
+            raise ValueError("embed_dim must be divisible by num_heads")
+        self.query_ff = nn.Linear(embed_dim, embed_dim)
+        self.key_ff = nn.Linear(embed_dim, embed_dim)
+        self.value_ff = nn.Linear(embed_dim, embed_dim)
+        self.out_ff = nn.Linear(embed_dim, embed_dim)
+        self._reset_parameters()
 
-        self.wq = nn.Linear(d_model, d_model)
-        self.wk = nn.Linear(d_model, d_model)
-        self.wv = nn.Linear(d_model, d_model)
-        
-        self.dense = nn.Linear(d_model, d_model)
-        self.dropout = nn.Dropout(p=dropout)
+    def _reset_parameters(self):
+        for p in self.parameters():
+            if p.dim() > 1:
+                nn.init.xavier_uniform_(p)
 
-    def forward(self, query, key, value, mask=None):
-        if mask is not None:
-            mask = mask.unsqueeze(1)
-        nbatches = query.size(0)
-
-        # 1) Linear projections for query, key, value
-        query = self.wq(query).view(nbatches, -1, self.num_heads, self.d_k)
-        key = self.wk(key).view(nbatches, -1, self.num_heads, self.d_k)
-        value = self.wv(value).view(nbatches, -1, self.num_heads, self.d_k)
-
-        query = query[:, ::self.stride, :, :]  # Apply strided attention
-        key = key[:, ::self.stride, :, :]
-        value = value[:, ::self.stride, :, :]
-        
-        # 2) Scaled dot-product attention
-        x, self.attn = self.attention(query, key, value, mask=mask)
-
-        # 3) Concatenate heads and apply final linear transformation
-        x = x.transpose(1, 2).contiguous().view(nbatches, -1, self.num_heads * self.d_k)
-        x = self.dense(x)
-        x = self.dropout(x)
-
-        return x
-
-    def attention(self, query, key, value, mask=None):
-        d_k = query.size(-1)
-        scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
-        if mask is not None:
-            scores += (mask * -1e9)
-        p_attn = F.softmax(scores, dim=-1)
-        return torch.matmul(p_attn, value), p_attn
+    def forward(self, query, key, value, **kwargs):
+        m = query.size(0)
+        n = key.size(0)
+        if key.size(0) != value.size(0):
+            raise RuntimeError("key and value must have same length")
+        query = self.query_ff(query).view(m, -1, self.head_dim).transpose(0, 1)
+        key = self.key_ff(key).view(n, -1, self.head_dim).transpose(0, 1)
+        value = self.value_ff(value).view(n, -1, self.head_dim).transpose(0, 1)
+        rows = torch.arange(m, device=query.device).repeat(2 * self.attn_span + 1, 1).transpose(0, 1).flatten()
+        cols = torch.cat([torch.arange(i - self.attn_span, i + self.attn_span + 1, device=query.device) for i in range(n)])
+        bounds = (cols >= 0) & (cols < n)
+        cols[~bounds] = 0
+        idxs = torch.stack([rows, cols])
+        vals = (query[:, rows, :] * key[:, cols, :] * bounds.view(1, -1, 1)).sum(-1) / math.sqrt(n)
+        vals[:, ~bounds] = -float("inf")
+        vals = torch.dropout(torch.softmax(vals.view(-1, n, 2 * self.attn_span + 1), dim=-1), self.dropout, self.training).view(-1, idxs.size(1))
+        attn_matrix = [torch.sparse.FloatTensor(idxs[:, bounds], val[bounds], (m, n)) for val in vals]
+        out = self.out_ff(torch.stack([torch.sparse.mm(attn, val) for attn, val in zip(attn_matrix, value)]).transpose(0, 1).contiguous().view(n, -1, self.embed_dim))
+        return out, attn_matrix
 
 class PositionwiseFeedForward(nn.Module):
     "Implements FFN equation."
@@ -103,56 +98,61 @@ class PositionwiseFeedForward(nn.Module):
         return x
       
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model, num_heads, dff, dropout=0.1, stride=2):
+    "Encoder is made up of self-attn and feed forward (defined below)"
+    def __init__(self, d_model, num_heads, dff, dropout=0.1, attn_span=50):
         super(EncoderLayer, self).__init__()
-        self.mha = SparseMultiHeadedAttention(num_heads, d_model, stride, dropout=0.1)
-        self.ffn = PositionwiseFeedForward(d_model, dff, dropout=0.1)
+        self.mha = SparseMultiheadAttention(d_model, num_heads, dropout=dropout, attn_span=attn_span)
+        self.ffn = PositionwiseFeedForward(d_model, dff, dropout=dropout)
         
         self.layernorm1 = nn.LayerNorm(d_model, eps=1e-6)
         self.layernorm2 = nn.LayerNorm(d_model, eps=1e-6)
 
     def forward(self, x, mask):
-        attn_output = self.mha(x, x, x, mask)
+        attn_output, _ = self.mha(x, x, x, mask=mask)
         x = self.layernorm1(x + attn_output)
+        
         ffn_output = self.ffn(x)
         x = self.layernorm2(x + ffn_output)
+        
         return x
-
+    
 class DecoderLayer(nn.Module):
-    def __init__(self, d_model, num_heads, dff, dropout=0.1, stride=2):
+    "Decoder is made of self-attn, src-attn, and feed forward (defined below)"
+    def __init__(self, d_model, num_heads, dff, dropout=0.1, attn_span=50):
         super(DecoderLayer, self).__init__()
-        self.self_mha = SparseMultiHeadedAttention(num_heads, d_model, stride, dropout=0.1)
-        self.src_mha = SparseMultiHeadedAttention(num_heads, d_model, stride, dropout=0.1)
-        self.ffn = PositionwiseFeedForward(d_model, dff, dropout=0.1)
+        self.self_mha = SparseMultiheadAttention(d_model, num_heads, dropout=dropout, attn_span=attn_span)
+        self.src_mha = SparseMultiheadAttention(d_model, num_heads, dropout=dropout, attn_span=attn_span)
+        self.ffn = PositionwiseFeedForward(d_model, dff, dropout=dropout)
         
         self.layernorm1 = nn.LayerNorm(d_model, eps=1e-6)
         self.layernorm2 = nn.LayerNorm(d_model, eps=1e-6)
         self.layernorm3 = nn.LayerNorm(d_model, eps=1e-6)
 
     def forward(self, x, memory, look_ahead_mask, trg_padding_mask):
-        attn_output = self.self_mha(x, x, x, look_ahead_mask)
+        attn_output, _ = self.self_mha(x, x, x, mask=look_ahead_mask)
         x = self.layernorm1(x + attn_output)
-        src_output = self.src_mha(x, memory, memory, trg_padding_mask)
+        
+        src_output, _ = self.src_mha(x, memory, memory, mask=trg_padding_mask)
         x = self.layernorm2(x + src_output)
-        fnn_output = self.ffn(x)
-        x = self.layernorm3(x + fnn_output)
+        
+        ffn_output = self.ffn(x)
+        x = self.layernorm3(x + ffn_output)
         return x
 
 class Encoder(nn.Module):
     "Core encoder is a stack of N layers"
     def __init__(self, num_layers, src_vocab_size, max_len, 
-                 d_model, num_heads, dff, dropout=0.1, stride=2):
+                 d_model, num_heads, dff, dropout=0.1, attn_span=50):
         super(Encoder, self).__init__()
         
         self.d_model = d_model
         self.embedding = nn.Embedding(src_vocab_size, d_model)
         self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
-        self.enc_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, dff, dropout, stride) 
+        self.enc_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, dff, dropout, attn_span) 
                                             for _ in range(num_layers)])
         
     def forward(self, x, src_mask):
         "Pass the input (and mask) through each layer in turn."
-        # the input size of x is [batch_size, seq_len]
         x = self.embedding(x) * math.sqrt(self.d_model)
         x = self.pos_encoding(x)
         
@@ -163,17 +163,16 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     def __init__(self, num_layers, trg_vocab_size, max_len, 
-                 d_model, num_heads, dff, dropout=0.1, stride=2):
+                 d_model, num_heads, dff, dropout=0.1, attn_span=50):
         super(Decoder, self).__init__()
         
         self.d_model = d_model
         self.embedding = nn.Embedding(trg_vocab_size, d_model)
         self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
-        self.dec_layers = nn.ModuleList([DecoderLayer(d_model, num_heads, dff, dropout, stride) 
+        self.dec_layers = nn.ModuleList([DecoderLayer(d_model, num_heads, dff, dropout, attn_span) 
                                             for _ in range(num_layers)])
     
     def forward(self, x, memory, look_ahead_mask, trg_padding_mask):
-        
         x = self.embedding(x) * math.sqrt(self.d_model)
         x = self.pos_encoding(x)
         
