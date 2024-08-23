@@ -125,7 +125,7 @@ def run_experiment(channel, args):
     initNetParams(deepsc)
 
     # Check for existing checkpoint
-    start_epoch = 0
+    start_epoch = 20
     checkpoint_files = sorted([f for f in os.listdir(channel_checkpoint_path) if f.endswith('.pth')])
     if checkpoint_files:
         latest_checkpoint = os.path.join(channel_checkpoint_path, checkpoint_files[-1])
