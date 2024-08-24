@@ -52,7 +52,6 @@ class LabelSmoothing(nn.Module):
         self.true_dist = true_dist
         return self.criterion(x, true_dist)
 
-
 class NoamOpt:
     "Optim wrapper that implements rate."
     def __init__(self, model_size, factor, warmup, optimizer):
@@ -94,9 +93,6 @@ class NoamOpt:
             min(step ** (-0.5), step * self.warmup ** (-1.5)))
   
         return lr
-    
-
-        # return lr
     
     def weight_decay(self, step = None):
         "Implement `lrate` above"
